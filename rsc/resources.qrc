@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="/SimpleHasher">
+    <file>application.ico</file>
+	<file>application.svg</file>
+	<file>qt.ico</file>
+	<file>cancel.svg</file>
+  </qresource>
+</RCC>
