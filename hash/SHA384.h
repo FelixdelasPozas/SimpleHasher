@@ -1,5 +1,5 @@
 /*
- File: SHA256.h
+ File: SHA384.h
  Created on: 05/06/2016
  Author: Felix de las Pozas Alvarez
 
@@ -17,28 +17,21 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HASH_SHA256_H_
-#define HASH_SHA256_H_
+#ifndef HASH_SHA384_H_
+#define HASH_SHA384_H_
 
+// Project
 #include <Hash.h>
 
-/** \class SHA256
- * \brief Implements the Secure Hash Algorithm 2 of 256 bits.
- *
+/** \class SHA384
+ * \brief Implementation of the Secure Hash Algorithm 2 of 384 bits
  */
-class SHA256
+class SHA384
 : public Hash
 {
   public:
-    /** \brief SHA256 class constructor.
-     *
-     */
-    SHA256();
-
-    /** \brief SHA256 class virtual destructor.
-     *
-     */
-    virtual ~SHA256()
+    SHA384();
+    virtual ~SHA384()
     {};
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
@@ -46,7 +39,7 @@ class SHA256
     virtual const QString value();
 
     virtual const QString name()
-    { return QString("SHA-256"); }
+    { return QString("SHA-384"); }
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
@@ -55,7 +48,7 @@ class SHA256
      */
     void process_block(const unsigned char *char_block);
 
-    unsigned long A, B, C, D, E, F, G, H; /** chaining variables. */
+    unsigned long long A, B, C, D, E, F, G, H;
 };
 
-#endif // HASH_SHA256_H_
+#endif // HASH_SHA384_H_

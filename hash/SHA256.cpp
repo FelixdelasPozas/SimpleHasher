@@ -84,22 +84,6 @@ void SHA256::update(const QByteArray& buffer, const unsigned long long message_l
 }
 
 //----------------------------------------------------------------
-void SHA256::update(QFile file)
-{
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
-
-  while(fileSize != message_length)
-  {
-    auto block = file.read(64);
-    message_length += block.length();
-    update(block, message_length * 8);
-
-    emit progress((100*message_length)/fileSize);
-  }
-}
-
-//----------------------------------------------------------------
 const QString SHA256::value()
 {
   return QString("%1 %2 %3 %4 %5 %6 %7").arg(A, 4, 16, QChar('0'))

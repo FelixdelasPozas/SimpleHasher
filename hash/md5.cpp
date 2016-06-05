@@ -126,22 +126,6 @@ void MD5::update(const QByteArray &buffer, const unsigned long long message_leng
 }
 
 //----------------------------------------------------------------
-void MD5::update(QFile file)
-{
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
-
-  while(fileSize != message_length)
-  {
-    auto block = file.read(64);
-    message_length += block.length();
-    update(block, message_length * 8);
-
-    emit progress((100*message_length)/fileSize);
-  }
-}
-
-//----------------------------------------------------------------
 const QString MD5::value()
 {
   return QString("%1 %2 %3 %4").arg(A, 4, 16, QChar('0'))

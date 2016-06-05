@@ -43,18 +43,18 @@ class Hash
     virtual ~Hash()
     {};
 
+    /** \brief Updates the hash with the contents of the file.
+     * \param[in] file already opened file.
+     *
+     */
+    virtual void update(QFile file);
+
     /** \brief Updated the hash with the contents of the buffer.
      * \param[in] buffer data buffer.
      * \param[in] message_length length of the message being hashed.
      *
      */
     virtual void update(const QByteArray &buffer, const unsigned long long message_length) = 0;
-
-    /** \brief Updates the hash with the contents of the file.
-     * \param[in] file already opened file.
-     *
-     */
-    virtual void update(QFile file) = 0;
 
     /** \brief Returns the hash value as a string.
      *

@@ -45,8 +45,6 @@ class MD5
     virtual ~MD5()
     {};
 
-    virtual void update(QFile file);
-
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
     virtual const QString value();

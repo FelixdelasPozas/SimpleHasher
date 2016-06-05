@@ -44,8 +44,6 @@ class SHA1
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
-    virtual void update(QFile file);
-
     virtual const QString value();
 
     virtual const QString name()

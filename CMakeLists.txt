@@ -69,6 +69,8 @@ set (CORE_SOURCES
   hash/SHA1.cpp
   hash/SHA224.cpp
   hash/SHA256.cpp
+  hash/SHA384.cpp
+  hash/SHA512.cpp
   hash/Tiger.cpp
 )
 
