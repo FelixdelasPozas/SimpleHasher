@@ -66,7 +66,9 @@ set (CORE_SOURCES
   AboutDialog.cpp
   Hash.cpp
   hash/MD5.cpp
-  hash/SHA.cpp
+  hash/SHA1.cpp
+  hash/SHA224.cpp
+  hash/SHA256.cpp
   hash/Tiger.cpp
 )
 

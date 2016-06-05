@@ -1,5 +1,5 @@
 /*
- File: MD5.h
+ File: SHA-1.h
  Created on: 05/06/2016
  Author: Felix de las Pozas Alvarez
 
@@ -17,42 +17,39 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HASH_MD5_H_
-#define HASH_MD5_H_
+#ifndef HASH_SHA1_H_
+#define HASH_SHA1_H_
 
 // Project
 #include <Hash.h>
 
-// Qt
-#include <QObject>
-
-/** \class MD5
- * \brief Implements the Message Digest Algorithm 5 of 160 bits.
+/** \class SHA
+ * \brief Implements the Secure Hash Algorithm 1
  *
  */
-class MD5
+class SHA1
 : public Hash
 {
   public:
-    /** \brief MD5 class constructor.
+    /** \brief SHA class constructor.
      *
      */
-    MD5();
+    SHA1();
 
-    /** \brief MD5 class virtual destructor.
+    /** \brief SHA class virtual destructor.
      *
      */
-    virtual ~MD5()
+    virtual ~SHA1()
     {};
 
-    virtual void update(QFile file);
-
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
+
+    virtual void update(QFile file);
 
     virtual const QString value();
 
     virtual const QString name()
-    { return QString("MD5"); }
+    { return QString("SHA-1"); }
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
@@ -61,7 +58,7 @@ class MD5
      */
     void process_block(const unsigned char *char_block);
 
-    unsigned long A, B, C, D; /** chaining variables. */
+    unsigned long A, B, C, D, E; /** chaining variables. */
 };
 
-#endif // HASH_MD5_H_
+#endif // HASH_SHA1_H_

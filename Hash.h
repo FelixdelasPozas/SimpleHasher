@@ -61,6 +61,11 @@ class Hash
      */
     virtual const QString value() = 0;
 
+    /** \brief Returns the Hash name.
+     *
+     */
+    virtual const QString name() = 0;
+
   signals:
     void progress(int value);
 };

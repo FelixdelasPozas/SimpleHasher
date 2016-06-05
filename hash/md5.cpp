@@ -157,7 +157,7 @@ void MD5::process_block(const unsigned char *char_block)
   unsigned long long_block[16];
   register unsigned int loop;
 
-  auto Function = [](int loop, unsigned long x, unsigned long y, unsigned long z)
+  auto Function = [](unsigned int loop, unsigned long x, unsigned long y, unsigned long z)
   {
     if (loop < 16)
     {
@@ -190,11 +190,12 @@ void MD5::process_block(const unsigned char *char_block)
   /* convert the block from unsigned char to unsigned long */
   /* MD5 is little-endian so we have to reverse bytes      */
   for (loop = 0; loop < 16; loop++)
-      long_block[loop] =
-          ((unsigned long) (char_block[(loop*4)]   <<  0)) |
-          ((unsigned long) (char_block[(loop*4)+1] <<  8)) |
-          ((unsigned long) (char_block[(loop*4)+2] << 16)) |
-          ((unsigned long) (char_block[(loop*4)+3] << 24));
+  {
+    long_block[loop] = ((unsigned long) (char_block[(loop*4)]   <<  0)) |
+                       ((unsigned long) (char_block[(loop*4)+1] <<  8)) |
+                       ((unsigned long) (char_block[(loop*4)+2] << 16)) |
+                       ((unsigned long) (char_block[(loop*4)+3] << 24));
+  }
 
   /* initialize working variables for this block */
   a = A;
