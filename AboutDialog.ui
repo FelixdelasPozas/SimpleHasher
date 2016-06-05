@@ -26,8 +26,8 @@
    <string>About...</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/OGGExtractor/information.svg</normaloff>:/OGGExtractor/information.svg</iconset>
+   <iconset resource="rsc/resources.qrc">
+    <normaloff>:/SimpleHasher/information.svg</normaloff>:/SimpleHasher/information.svg</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

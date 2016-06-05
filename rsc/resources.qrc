@@ -4,5 +4,6 @@
 	<file>application.svg</file>
 	<file>qt.ico</file>
 	<file>cancel.svg</file>
+	<file>information.svg</file>
   </qresource>
 </RCC>

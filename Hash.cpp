@@ -1,5 +1,5 @@
 /*
- File: Tiger.cpp
+ File: Hash.cpp
  Created on: 05/06/2016
  Author: Felix de las Pozas Alvarez
 
@@ -17,9 +17,10 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <hash/Tiger.h>
+// Project
+#include "Hash.h"
 
-Tiger::Tiger()
+//----------------------------------------------------------------
+Hash::Hash()
 {
 }
-

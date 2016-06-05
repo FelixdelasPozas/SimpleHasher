@@ -64,9 +64,10 @@ set (CORE_SOURCES
   main.cpp
   SimpleHasher.cpp
   AboutDialog.cpp
-  hash/md5.cpp
-  hash/sha.cpp
-  hash/tiger.cpp
+  Hash.cpp
+  hash/MD5.cpp
+  hash/SHA.cpp
+  hash/Tiger.cpp
 )
 
 set(CORE_EXTERNAL_LIBS
