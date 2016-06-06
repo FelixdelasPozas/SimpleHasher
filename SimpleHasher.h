@@ -48,8 +48,13 @@ class SimpleHasher
     void onCancelPressed();
     void onSavePressed();
     void onCheckBoxStateChanged(int value);
+    void onComputationFinished();
 
   private:
+    // TODO
+    void loadSettings() {};
+    void saveSettings() {};
+
     void connectSignals();
     void hideProgress();
     void showProgress();

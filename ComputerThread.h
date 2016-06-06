@@ -55,6 +55,17 @@ class ComputerThread
      */
     QMap<QString, HashList> getResults() const;
 
+    /** \brief Stops computation and returns.
+     *
+     */
+    void abort();
+
+    /** \brief Returns true if the process has been aborted.
+     *
+     */
+    bool isAborted() const
+    { return m_abort; }
+
   signals:
     void progress(int value);
 
@@ -65,6 +76,7 @@ class ComputerThread
     QStringList             m_files;      /** list of file names with absolute path to compute hashes for. */
     HashList                m_hashes;     /** list of hash objects.                                        */
     QMap<QString, HashList> m_fileHashes; /** results.                                                     */
+    bool                    m_abort;      /** set to true to stop computing and return ASAP.               */
 };
 
 #endif // COMPUTERTHREAD_H_

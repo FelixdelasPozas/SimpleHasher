@@ -25,6 +25,7 @@ ComputerThread::ComputerThread(const QStringList &files, const HashList &hashes,
 : QThread {parent}
 , m_files {files}
 , m_hashes{hashes}
+, m_abort {false}
 {
 }
 
@@ -35,12 +36,18 @@ QMap<QString, HashList> ComputerThread::getResults() const
 }
 
 //----------------------------------------------------------------
+void ComputerThread::abort()
+{
+  m_abort = true;
+}
+
+//----------------------------------------------------------------
 void ComputerThread::run()
 {
   for(int i = 0; i < m_files.size(); ++i)
   {
     // TODO: connect to hash signals to provide a better progress value.
-    emit progress((100 * i)/m_files.size());
+    emit progress((100 *(i+1))/m_files.size());
 
     auto filename = m_files.at(i);
     QFile file{filename};
@@ -54,7 +61,7 @@ void ComputerThread::run()
     for(auto hash: m_hashes)
     {
       auto fileHash = hash->clone();
-      hash->update(file);
+      fileHash->update(file);
 
       m_fileHashes[filename] << fileHash;
     }

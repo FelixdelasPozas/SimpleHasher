@@ -37,6 +37,12 @@ void Hash::update(QFile &file)
     message_length += block.length();
     update(block, message_length * 8);
 
+    // last block needs to be processed
+    if((fileSize == message_length) && (block.size() == 64))
+    {
+      update(QByteArray(), message_length * 8);
+    }
+
     emit progress((100*message_length)/fileSize);
   }
 }

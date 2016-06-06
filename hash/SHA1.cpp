@@ -34,34 +34,29 @@ SHA1::SHA1()
 //----------------------------------------------------------------
 void SHA1::update(const QByteArray& buffer, const unsigned long long message_length)
 {
-  register unsigned int loop;
+  auto length = buffer.length();
 
-  if (64 == buffer.length())
+  if (64 == length)
   {
-      process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
-      return;
+    process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
+    return;
   }
 
   QByteArray finalBuffer{64,0};
-  memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
-  finalBuffer[buffer.length()] = 0x80;
-
-  for(auto i = buffer.length(); i < 64; ++i)
-  {
-    finalBuffer[i] = 0;
-  }
+  memcpy(finalBuffer.data(), buffer.constData(), length);
+  finalBuffer[length++] = 0x80;
 
   /* if length < 55 there is space for message length, we process 1 block */
   /* if not, we need to process two blocks                                */
-  if (buffer.length() >= 56)
+  if (length >= 56)
   {
-      process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-      memset(finalBuffer.data(), 0x00, 64);
+    process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
+    memset(finalBuffer.data(), 0x00, 64);
   }
 
-  for (loop = 0; loop < 8; loop++)
+  for (int loop = 0; loop < 8; loop++)
   {
-    finalBuffer[56+loop] = ((message_length) >> (8 * loop)) & 0xFF;
+    finalBuffer[56+loop] = static_cast<unsigned char>(((message_length) >> (56 - (8 * loop))) & 0xFF);
   }
 
   process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
@@ -70,11 +65,11 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
 //----------------------------------------------------------------
 const QString SHA1::value()
 {
-  return QString("%1 %2 %3 %4 %5").arg(A, 4, 16, QChar('0'))
-                                  .arg(B, 4, 16, QChar('0'))
-                                  .arg(C, 4, 16, QChar('0'))
-                                  .arg(D, 4, 16, QChar('0'))
-                                  .arg(E, 4, 16, QChar('0'));
+  return QString("%1 %2 %3 %4 %5").arg(A, 8, 16, QChar('0'))
+                                  .arg(B, 8, 16, QChar('0'))
+                                  .arg(C, 8, 16, QChar('0'))
+                                  .arg(D, 8, 16, QChar('0'))
+                                  .arg(E, 8, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
