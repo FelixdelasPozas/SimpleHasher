@@ -78,6 +78,14 @@ const QString SHA1::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr SHA1::clone() const
+{
+  auto instance = std::make_shared<SHA1>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void SHA1::process_block(const unsigned char *char_block)
 {
   unsigned long a, b, c, d, e, temp;

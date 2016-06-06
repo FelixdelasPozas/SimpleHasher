@@ -62,9 +62,10 @@ set (CORE_SOURCES
   ${CORE_MOC}
   ${CORE_UI}
   main.cpp
-  SimpleHasher.cpp
   AboutDialog.cpp
+  ComputerThread.cpp
   Hash.cpp
+  SimpleHasher.cpp
   hash/MD5.cpp
   hash/SHA1.cpp
   hash/SHA224.cpp

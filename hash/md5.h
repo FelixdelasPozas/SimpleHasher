@@ -52,6 +52,8 @@ class MD5
     virtual const QString name()
     { return QString("MD5"); }
 
+    virtual HashSPtr clone() const;
+
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.

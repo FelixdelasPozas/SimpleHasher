@@ -110,6 +110,14 @@ const QString SHA512::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr SHA512::clone() const
+{
+  auto instance = std::make_shared<SHA512>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void SHA512::process_block(const unsigned char* char_block)
 {
   unsigned long long a, b, c, d, e, f, g, h, temp1, temp2;

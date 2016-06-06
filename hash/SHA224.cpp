@@ -97,6 +97,14 @@ const QString SHA224::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr SHA224::clone() const
+{
+  auto instance = std::make_shared<SHA224>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void SHA224::process_block(const unsigned char *char_block)
 {
   unsigned long a, b, c, d, e, f, g, h, temp1, temp2;

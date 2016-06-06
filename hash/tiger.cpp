@@ -180,6 +180,14 @@ void Tiger::process_block(const unsigned char* char_block)
 }
 
 //----------------------------------------------------------------
+HashSPtr Tiger::clone() const
+{
+  auto instance = std::make_shared<Tiger>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void Tiger::generate_table(const unsigned char *message, const unsigned int passes_number)
 {
   unsigned int loop, passes, sb, column, abc;

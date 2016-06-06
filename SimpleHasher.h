@@ -24,6 +24,11 @@
 #include <QMainWindow>
 #include "ui_SimpleHasher.h"
 
+// C++
+#include <memory>
+
+class ComputerThread;
+
 class SimpleHasher
 : public QMainWindow
 , private Ui::SimpleHasherMainWindow
@@ -51,7 +56,8 @@ class SimpleHasher
 
     void addFilesToTable(const QStringList &files);
 
-    QStringList m_files; /** files in the table. */
+    QStringList m_files;                      /** files in the table. */
+    std::shared_ptr<ComputerThread> m_thread; /** computer thread.    */
 };
 
 #endif // SIMPLEHASHER_H_

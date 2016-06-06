@@ -135,6 +135,14 @@ const QString MD5::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr MD5::clone() const
+{
+  auto instance = std::make_shared<MD5>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void MD5::process_block(const unsigned char *char_block)
 {
   register unsigned long a, b, c, d,temp;

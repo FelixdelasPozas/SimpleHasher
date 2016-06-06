@@ -24,6 +24,14 @@
 #include <QByteArray>
 #include <QFile>
 
+// C++
+#include <memory>
+
+class Hash;
+
+using HashSPtr = std::shared_ptr<Hash>;
+using HashList = QList<HashSPtr>;
+
 /** \class Hash
  * \brief Base class that defines the basic hash algorithm methods.
  */
@@ -47,7 +55,7 @@ class Hash
      * \param[in] file already opened file.
      *
      */
-    virtual void update(QFile file);
+    virtual void update(QFile &file);
 
     /** \brief Updated the hash with the contents of the buffer.
      * \param[in] buffer data buffer.
@@ -65,6 +73,11 @@ class Hash
      *
      */
     virtual const QString name() = 0;
+
+    /** \brief Returns a new object of this type.
+     *
+     */
+    virtual HashSPtr clone() const = 0;
 
   signals:
     void progress(int value);

@@ -97,6 +97,14 @@ const QString SHA256::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr SHA256::clone() const
+{
+  auto instance = std::make_shared<SHA256>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void SHA256::process_block(const unsigned char* char_block)
 {
   unsigned long a, b, c, d, e, f, g, h, temp1, temp2;

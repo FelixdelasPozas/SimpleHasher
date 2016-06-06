@@ -26,7 +26,7 @@ Hash::Hash()
 }
 
 //----------------------------------------------------------------
-void Hash::update(QFile file)
+void Hash::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();

@@ -108,6 +108,14 @@ const QString SHA384::value()
 }
 
 //----------------------------------------------------------------
+HashSPtr SHA384::clone() const
+{
+  auto instance = std::make_shared<SHA384>();
+
+  return instance;
+}
+
+//----------------------------------------------------------------
 void SHA384::process_block(const unsigned char* char_block)
 {
   unsigned long long a, b, c, d, e, f, g, h, temp1, temp2;

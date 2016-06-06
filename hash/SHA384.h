@@ -41,6 +41,8 @@ class SHA384
     virtual const QString name()
     { return QString("SHA-384"); }
 
+    virtual HashSPtr clone() const;
+
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.
