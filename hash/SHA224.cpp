@@ -49,7 +49,7 @@ SHA224::SHA224()
 }
 
 //----------------------------------------------------------------
-const QString SHA224::value()
+const QString SHA224::value() const
 {
   return QString("%1 %2 %3 %4 %5 %6 %7").arg(SHA224_A, 8, 16, QChar('0'))
                                         .arg(SHA224_B, 8, 16, QChar('0'))
@@ -58,14 +58,6 @@ const QString SHA224::value()
                                         .arg(SHA224_E, 8, 16, QChar('0'))
                                         .arg(SHA224_F, 8, 16, QChar('0'))
                                         .arg(SHA224_G, 8, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr SHA224::clone() const
-{
-  auto instance = std::make_shared<SHA224>();
-
-  return instance;
 }
 
 //----------------------------------------------------------------

@@ -33,7 +33,7 @@ class Tiger
     /** \brief Tiger class constructor.
      *
      */
-    Tiger(unsigned long long *table = nullptr);
+    Tiger();
 
     /** \brief Tiger class virtual destructor.
      *
@@ -45,12 +45,10 @@ class Tiger
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
-    virtual const QString value();
+    virtual const QString value() const;
 
-    virtual const QString name()
+    virtual const QString name() const
     { return QString("Tiger"); }
-
-    virtual HashSPtr clone() const;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
@@ -66,9 +64,10 @@ class Tiger
      */
     void generate_table(const unsigned char *message, const unsigned int passes_number);
 
-    static QString RANDOM_VALUE;  /** seed for table generation.                       */
-    static int PASSES_NUMBER;     /** number of passes for table generation.           */
-    static int BLOCK_PASSES;      /** number of passes when processing the data block. */
+    static QString RANDOM_VALUE;  /** seed for table generation.                               */
+    static int PASSES_NUMBER;     /** number of passes for table generation.                   */
+    static int BLOCK_PASSES;      /** number of passes when processing the data block.         */
+    static bool TABLE_AVAILABLE;  /** true if the table has been computed and false otherwise. */
 
     typedef struct
     {

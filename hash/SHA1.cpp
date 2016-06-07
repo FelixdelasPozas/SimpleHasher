@@ -37,6 +37,8 @@ void SHA1::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();
+  int currentProgress = -1;
+  int progressValue = 0;
 
   while(fileSize != message_length)
   {
@@ -50,7 +52,13 @@ void SHA1::update(QFile &file)
       update(QByteArray(), message_length * 8);
     }
 
-    emit progress((100*message_length)/fileSize);
+    progressValue = (100*message_length)/fileSize;
+
+    if(currentProgress != progressValue)
+    {
+      emit progress(progressValue);
+      currentProgress = progressValue;
+    }
   }
 }
 
@@ -86,21 +94,13 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
 }
 
 //----------------------------------------------------------------
-const QString SHA1::value()
+const QString SHA1::value() const
 {
   return QString("%1 %2 %3 %4 %5").arg(SHA1_A, 8, 16, QChar('0'))
                                   .arg(SHA1_B, 8, 16, QChar('0'))
                                   .arg(SHA1_C, 8, 16, QChar('0'))
                                   .arg(SHA1_D, 8, 16, QChar('0'))
                                   .arg(SHA1_E, 8, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr SHA1::clone() const
-{
-  auto instance = std::make_shared<SHA1>();
-
-  return instance;
 }
 
 //----------------------------------------------------------------

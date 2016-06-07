@@ -37,12 +37,11 @@ class ComputerThread
     Q_OBJECT
   public:
     /** \brief ComputeThread class constructor.
-     * \param[in] parent pointer of the QObject parent of this one.
-     * \param[in] files list of file names.
+     * \param[in] computations maps files to hashes to be computed.
      * \param[in] hashes list of hash objects.
      *
      */
-    ComputerThread(const QStringList &files, const HashList &hashes, QObject *parent = nullptr);
+    ComputerThread(QMap<QString, HashList> computations, QObject *parent = nullptr);
 
     /** \brief ComputeThread clss virtual destructor.
      *
@@ -69,14 +68,20 @@ class ComputerThread
   signals:
     void progress(int value);
 
+    void hashComputed(const QString &file, const Hash *hash);
+
+  private slots:
+    void hashProgress(int value);
+
   protected:
     virtual void run();
 
   private:
-    QStringList             m_files;      /** list of file names with absolute path to compute hashes for. */
-    HashList                m_hashes;     /** list of hash objects.                                        */
-    QMap<QString, HashList> m_fileHashes; /** results.                                                     */
-    bool                    m_abort;      /** set to true to stop computing and return ASAP.               */
+    QMap<QString, HashList> m_computations; /** maps the files with the hashes to be computed.               */
+    bool                    m_abort;        /** set to true to stop computing and return ASAP.               */
+    int                     m_currentIndex; /** index of the file currently hashing.                         */
+    int                     m_hashIndex;    /** index of the hash currently computing.                       */
+
 };
 
 #endif // COMPUTERTHREAD_H_

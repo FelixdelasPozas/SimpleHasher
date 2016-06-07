@@ -49,12 +49,10 @@ class MD5
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
-    virtual const QString value();
+    virtual const QString value() const;
 
-    virtual const QString name()
+    virtual const QString name() const
     { return QString("MD5"); }
-
-    virtual HashSPtr clone() const;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.

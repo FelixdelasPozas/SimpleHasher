@@ -71,6 +71,8 @@ void MD5::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();
+  int currentProgress = -1;
+  int progressValue = 0;
 
   while(fileSize != message_length)
   {
@@ -84,7 +86,12 @@ void MD5::update(QFile &file)
       update(QByteArray(), message_length * 8);
     }
 
-    emit progress((100*message_length)/fileSize);
+    progressValue = (100*message_length)/fileSize;
+    if(currentProgress != progressValue)
+    {
+      emit progress(progressValue);
+      currentProgress = progressValue;
+    }
   }
 }
 
@@ -148,20 +155,12 @@ void MD5::update(const QByteArray &buffer, const unsigned long long message_leng
 }
 
 //----------------------------------------------------------------
-const QString MD5::value()
+const QString MD5::value() const
 {
-  return QString("%1 %2 %3 %4").arg(A, 4, 16, QChar('0'))
-                               .arg(B, 4, 16, QChar('0'))
-                               .arg(C, 4, 16, QChar('0'))
-                               .arg(D, 4, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr MD5::clone() const
-{
-  auto instance = std::make_shared<MD5>();
-
-  return instance;
+  return QString("%1 %2 %3 %4").arg(A, 8, 16, QChar('0'))
+                               .arg(B, 8, 16, QChar('0'))
+                               .arg(C, 8, 16, QChar('0'))
+                               .arg(D, 8, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------

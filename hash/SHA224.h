@@ -42,12 +42,10 @@ class SHA224
     virtual ~SHA224()
     {};
 
-    virtual const QString value() override;
+    virtual const QString value() const override;
 
-    virtual const QString name() override
+    virtual const QString name() const override
     { return QString("SHA-224"); }
-
-    virtual HashSPtr clone() const override;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.

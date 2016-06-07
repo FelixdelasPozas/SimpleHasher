@@ -67,17 +67,12 @@ class Hash
     /** \brief Returns the hash value as a string.
      *
      */
-    virtual const QString value() = 0;
+    virtual const QString value() const = 0;
 
     /** \brief Returns the Hash name.
      *
      */
-    virtual const QString name() = 0;
-
-    /** \brief Returns a new object of this type.
-     *
-     */
-    virtual HashSPtr clone() const = 0;
+    virtual const QString name() const = 0;
 
   signals:
     void progress(int value);

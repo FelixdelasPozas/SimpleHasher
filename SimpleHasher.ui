@@ -48,7 +48,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBox">
+     <widget class="QGroupBox" name="m_hashGroup">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -215,7 +215,10 @@ QGroupBox::title {
       <item>
        <widget class="QPushButton" name="m_quit">
         <property name="toolTip">
-         <string>Quit the application. </string>
+         <string>Quit the application</string>
+        </property>
+        <property name="statusTip">
+         <string>Quit the application</string>
         </property>
         <property name="text">
          <string>Quit</string>
@@ -225,6 +228,9 @@ QGroupBox::title {
       <item>
        <widget class="QPushButton" name="m_about">
         <property name="toolTip">
+         <string>About Simple Hasher</string>
+        </property>
+        <property name="statusTip">
          <string>About Simple Hasher</string>
         </property>
         <property name="text">
@@ -250,6 +256,9 @@ QGroupBox::title {
         <property name="toolTip">
          <string>Add files to the list to hashed</string>
         </property>
+        <property name="statusTip">
+         <string>Add files to the list to hashed</string>
+        </property>
         <property name="text">
          <string>Add</string>
         </property>
@@ -263,6 +272,9 @@ QGroupBox::title {
         <property name="toolTip">
          <string>Remove data from the list to be hashed</string>
         </property>
+        <property name="statusTip">
+         <string>Remove data from the list to be hashed</string>
+        </property>
         <property name="text">
          <string>Remove</string>
         </property>
@@ -274,7 +286,7 @@ QGroupBox::title {
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Scan the data files in the list for OGG files. </string>
+         <string>Compute selected hashes for the group of files</string>
         </property>
         <property name="statusTip">
          <string>Compute selected hashes for the group of files</string>
@@ -290,7 +302,7 @@ QGroupBox::title {
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Extract selected OGG files to disk.</string>
+         <string>Save hashes to a file</string>
         </property>
         <property name="statusTip">
          <string>Save hashes to a file</string>

@@ -26,11 +26,12 @@ QString Tiger::RANDOM_VALUE = QString("Tiger - A Fast New Hash Function, by Ross
 // Default parameters used.
 int Tiger::PASSES_NUMBER = 5;
 int Tiger::BLOCK_PASSES = 3;
+bool Tiger::TABLE_AVAILABLE = false;
 
 static unsigned long long tiger_table[1024]; /** tiger table values. */
 
 //----------------------------------------------------------------
-Tiger::Tiger(unsigned long long *table)
+Tiger::Tiger()
 : Hash{}
 {
   // initialize chaining variables
@@ -38,7 +39,7 @@ Tiger::Tiger(unsigned long long *table)
   hash.b = 0xfedcba9876543210ULL;
   hash.c = 0xf096a5b4c3b2e187ULL;
 
-  if(!table)
+  if(!TABLE_AVAILABLE)
   {
     // Generate table.
     generate_table(reinterpret_cast<const unsigned char *>(RANDOM_VALUE.toStdString().c_str()), PASSES_NUMBER);
@@ -47,6 +48,8 @@ Tiger::Tiger(unsigned long long *table)
     hash.a = 0x0123456789abcdefULL;
     hash.b = 0xfedcba9876543210ULL;
     hash.c = 0xf096a5b4c3b2e187ULL;
+
+    TABLE_AVAILABLE = true;
   }
 }
 
@@ -55,6 +58,8 @@ void Tiger::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();
+  int currentProgress = -1;
+  int progressValue = 0;
 
   while(fileSize != message_length)
   {
@@ -68,7 +73,13 @@ void Tiger::update(QFile &file)
       update(QByteArray(), message_length);
     }
 
-    emit progress((100*message_length)/fileSize);
+    progressValue = (100*message_length)/fileSize;
+
+    if(currentProgress != progressValue)
+    {
+      emit progress(progressValue);
+      currentProgress = progressValue;
+    }
   }
 }
 
@@ -105,7 +116,7 @@ void Tiger::update(const QByteArray& buffer, const unsigned long long message_le
 }
 
 //----------------------------------------------------------------
-const QString Tiger::value()
+const QString Tiger::value() const
 {
   return QString("%1 %2 %3").arg(hash.a, 16, 16, QChar('0'))
                             .arg(hash.b, 16, 16, QChar('0'))
@@ -195,14 +206,6 @@ void Tiger::process_block(const unsigned char* char_block)
   hash.a = a;
   hash.b = b;
   hash.c = c;
-}
-
-//----------------------------------------------------------------
-HashSPtr Tiger::clone() const
-{
-  auto instance = std::make_shared<Tiger>(tiger_table);
-
-  return instance;
 }
 
 //----------------------------------------------------------------

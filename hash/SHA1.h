@@ -46,12 +46,10 @@ class SHA1
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
-    virtual const QString value();
+    virtual const QString value() const;
 
-    virtual const QString name()
+    virtual const QString name() const
     { return QString("SHA-1"); }
-
-    virtual HashSPtr clone() const;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.

@@ -27,6 +27,9 @@
 // C++
 #include <memory>
 
+// Project
+#include <Hash.h>
+
 class ComputerThread;
 
 class SimpleHasher
@@ -37,8 +40,7 @@ class SimpleHasher
   public:
     SimpleHasher(QWidget *parent = nullptr, Qt::WindowFlags flags = 0);
 
-    virtual ~SimpleHasher()
-    {}
+    virtual ~SimpleHasher();
 
   private slots:
     void onAboutPressed();
@@ -47,13 +49,25 @@ class SimpleHasher
     void onComputePressed();
     void onCancelPressed();
     void onSavePressed();
-    void onCheckBoxStateChanged(int value);
+    void onCheckBoxStateChanged();
     void onComputationFinished();
+    void onHashComputed(const QString &file, const Hash *hash);
 
   private:
-    // TODO
-    void loadSettings() {};
-    void saveSettings() {};
+    static QString STATE_MD5;
+    static QString STATE_SHA1;
+    static QString STATE_SHA224;
+    static QString STATE_SHA256;
+    static QString STATE_SHA384;
+    static QString STATE_SHA512;
+    static QString STATE_TIGER;
+    static QString GEOMETRY;
+    static QString OPTIONS_ONELINE;
+    static QString OPTIONS_UPPERCASE;
+    static QString OPTIONS_SPACES;
+
+    void loadSettings();
+    void saveSettings();
 
     void connectSignals();
     void hideProgress();
@@ -61,8 +75,13 @@ class SimpleHasher
 
     void addFilesToTable(const QStringList &files);
 
-    QStringList m_files;                      /** files in the table. */
-    std::shared_ptr<ComputerThread> m_thread; /** computer thread.    */
+    QStringList                            m_files;     /** files in the table.                                             */
+    std::shared_ptr<ComputerThread>        m_thread;    /** computer thread.                                                */
+    bool                                   m_spaces;    /** true to divide the hashes with spaces.                          */
+    bool                                   m_oneline;   /** true to show the long hashes in one line.                       */
+    bool                                   m_uppercase; /** true to show the hashes in uppercase.                           */
+    QMap<QString, QMap<QString, HashSPtr>> m_results;   /** maps files -> computed hashes.                                  */
+    QStringList                            m_headers;   /** list of column strings, just to avoid computing over and over.. */
 };
 
 #endif // SIMPLEHASHER_H_

@@ -61,7 +61,7 @@ SHA512::SHA512()
 }
 
 //----------------------------------------------------------------
-const QString SHA512::value()
+const QString SHA512::value() const
 {
   return QString("%1 %2 %3 %4\n%5 %6 %7 %8").arg(SHA512_A, 16, 16, QChar('0'))
                                             .arg(SHA512_B, 16, 16, QChar('0'))
@@ -71,14 +71,6 @@ const QString SHA512::value()
                                             .arg(SHA512_F, 16, 16, QChar('0'))
                                             .arg(SHA512_G, 16, 16, QChar('0'))
                                             .arg(SHA512_H, 16, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr SHA512::clone() const
-{
-  auto instance = std::make_shared<SHA512>();
-
-  return instance;
 }
 
 //----------------------------------------------------------------

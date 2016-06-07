@@ -48,7 +48,7 @@ SHA256::SHA256()
 }
 
 //----------------------------------------------------------------
-const QString SHA256::value()
+const QString SHA256::value() const
 {
   return QString("%1 %2 %3 %4 %5 %6 %7 %8").arg(SHA256_A, 8, 16, QChar('0'))
                                            .arg(SHA256_B, 8, 16, QChar('0'))
@@ -58,14 +58,6 @@ const QString SHA256::value()
                                            .arg(SHA256_F, 8, 16, QChar('0'))
                                            .arg(SHA256_G, 8, 16, QChar('0'))
                                            .arg(SHA256_H, 8, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr SHA256::clone() const
-{
-  auto instance = std::make_shared<SHA256>();
-
-  return instance;
 }
 
 //----------------------------------------------------------------

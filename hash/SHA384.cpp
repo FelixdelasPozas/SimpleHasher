@@ -65,6 +65,8 @@ void SHA384::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();
+  int currentProgress = -1;
+  int progressValue = 0;
 
   while(fileSize != message_length)
   {
@@ -78,7 +80,13 @@ void SHA384::update(QFile &file)
       update(QByteArray(), message_length * 8);
     }
 
-    emit progress((100*message_length)/fileSize);
+    progressValue = (100*message_length)/fileSize;
+
+    if(currentProgress != progressValue)
+    {
+      emit progress(progressValue);
+      currentProgress = progressValue;
+    }
   }
 }
 
@@ -115,7 +123,7 @@ void SHA384::update(const QByteArray& buffer, const unsigned long long message_l
 }
 
 //----------------------------------------------------------------
-const QString SHA384::value()
+const QString SHA384::value() const
 {
   return QString("%1 %2 %3\n%4 %5 %6").arg(SHA384_A, 16, 16, QChar('0'))
                                       .arg(SHA384_B, 16, 16, QChar('0'))
@@ -123,14 +131,6 @@ const QString SHA384::value()
                                       .arg(SHA384_D, 16, 16, QChar('0'))
                                       .arg(SHA384_E, 16, 16, QChar('0'))
                                       .arg(SHA384_F, 16, 16, QChar('0'));
-}
-
-//----------------------------------------------------------------
-HashSPtr SHA384::clone() const
-{
-  auto instance = std::make_shared<SHA384>();
-
-  return instance;
 }
 
 //----------------------------------------------------------------
