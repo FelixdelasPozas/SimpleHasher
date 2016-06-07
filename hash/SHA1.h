@@ -42,6 +42,8 @@ class SHA1
     virtual ~SHA1()
     {};
 
+    virtual void update(QFile &file);
+
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
     virtual const QString value();
@@ -56,9 +58,14 @@ class SHA1
      * \param[in] char_block data buffer at maximum 64 bytes in size.
      *
      */
-    void process_block(const unsigned char *char_block);
+    virtual void process_block(const unsigned char *char_block);
 
-    unsigned long A, B, C, D, E; /** chaining variables. */
+    /** chaining variables. */
+    unsigned long SHA1_A;
+    unsigned long SHA1_B;
+    unsigned long SHA1_C;
+    unsigned long SHA1_D;
+    unsigned long SHA1_E;
 };
 
 #endif // HASH_SHA1_H_

@@ -20,14 +20,14 @@
 #ifndef HASH_SHA256_H_
 #define HASH_SHA256_H_
 
-#include <Hash.h>
+#include <hash/SHA1.h>
 
 /** \class SHA256
  * \brief Implements the Secure Hash Algorithm 2 of 256 bits.
  *
  */
 class SHA256
-: public Hash
+: public SHA1
 {
   public:
     /** \brief SHA256 class constructor.
@@ -41,23 +41,29 @@ class SHA256
     virtual ~SHA256()
     {};
 
-    virtual void update(const QByteArray &buffer, const unsigned long long message_length);
+    virtual const QString value() override;
 
-    virtual const QString value();
-
-    virtual const QString name()
+    virtual const QString name() override
     { return QString("SHA-256"); }
 
-    virtual HashSPtr clone() const;
+    virtual HashSPtr clone() const override;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.
      *
      */
-    void process_block(const unsigned char *char_block);
+    virtual void process_block(const unsigned char *char_block) override;
 
-    unsigned long A, B, C, D, E, F, G, H; /** chaining variables. */
+    /** chaining variables. */
+    unsigned long SHA256_A;
+    unsigned long SHA256_B;
+    unsigned long SHA256_C;
+    unsigned long SHA256_D;
+    unsigned long SHA256_E;
+    unsigned long SHA256_F;
+    unsigned long SHA256_G;
+    unsigned long SHA256_H;
 };
 
 #endif // HASH_SHA256_H_

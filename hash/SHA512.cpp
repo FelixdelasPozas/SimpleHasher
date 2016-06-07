@@ -20,7 +20,7 @@
 // Project
 #include <hash/SHA512.h>
 
-/* SHA-512 Constants */
+/** SHA-512 Constants */
 static const unsigned long long SHA512_CONSTANTS[80] =
 {
   0x428A2F98D728AE22LL, 0x7137449123EF65CDLL, 0xB5C0FBCFEC4D3B2FLL, 0xE9B5DBA58189DBBCLL,
@@ -47,66 +47,30 @@ static const unsigned long long SHA512_CONSTANTS[80] =
 
 //----------------------------------------------------------------
 SHA512::SHA512()
-: Hash{}
-, A{0x6A09E667F3BCC908LL}
-, B{0xBB67AE8584CAA73BLL}
-, C{0x3C6EF372FE94F82BLL}
-, D{0xA54FF53A5F1D36F1LL}
-, E{0x510E527FADE682D1LL}
-, F{0x9B05688C2B3E6C1FLL}
-, G{0x1F83D9ABFB41BD6BLL}
-, H{0x5BE0CD19137E2179LL}
+: SHA384{}
+, SHA512_A{0x6A09E667F3BCC908LL}
+, SHA512_B{0xBB67AE8584CAA73BLL}
+, SHA512_C{0x3C6EF372FE94F82BLL}
+, SHA512_D{0xA54FF53A5F1D36F1LL}
+, SHA512_E{0x510E527FADE682D1LL}
+, SHA512_F{0x9B05688C2B3E6C1FLL}
+, SHA512_G{0x1F83D9ABFB41BD6BLL}
+, SHA512_H{0x5BE0CD19137E2179LL}
 {
   // Initialize chaining variables.
 }
 
 //----------------------------------------------------------------
-void SHA512::update(const QByteArray& buffer, const unsigned long long message_length)
-{
-  register unsigned int loop;
-
-  if (64 == buffer.length())
-  {
-      process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
-      return;
-  }
-
-  QByteArray finalBuffer{64,0};
-  memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
-  finalBuffer[buffer.length()] = 0x80;
-
-  for(auto i = buffer.length(); i < 64; ++i)
-  {
-    finalBuffer[i] = 0;
-  }
-
-  /* if length < 55 there is space for message length, we process 1 block */
-  /* if not, we need to process two blocks                                */
-  if (buffer.length() >= 56)
-  {
-      process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-      memset(finalBuffer.data(), 0x00, 64);
-  }
-
-  for (loop = 0; loop < 8; loop++)
-  {
-    finalBuffer[56+loop] = ((message_length) >> (8 * loop)) & 0xFF;
-  }
-
-  process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-}
-
-//----------------------------------------------------------------
 const QString SHA512::value()
 {
-  return QString("%1 %2 %3 %4 %5 %6 %7 %8").arg(A, 8, 16, QChar('0'))
-                                           .arg(B, 8, 16, QChar('0'))
-                                           .arg(C, 8, 16, QChar('0'))
-                                           .arg(D, 8, 16, QChar('0'))
-                                           .arg(E, 8, 16, QChar('0'))
-                                           .arg(F, 8, 16, QChar('0'))
-                                           .arg(G, 8, 16, QChar('0'))
-                                           .arg(H, 8, 16, QChar('0'));
+  return QString("%1 %2 %3 %4\n%5 %6 %7 %8").arg(SHA512_A, 16, 16, QChar('0'))
+                                            .arg(SHA512_B, 16, 16, QChar('0'))
+                                            .arg(SHA512_C, 16, 16, QChar('0'))
+                                            .arg(SHA512_D, 16, 16, QChar('0'))
+                                            .arg(SHA512_E, 16, 16, QChar('0'))
+                                            .arg(SHA512_F, 16, 16, QChar('0'))
+                                            .arg(SHA512_G, 16, 16, QChar('0'))
+                                            .arg(SHA512_H, 16, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
@@ -124,13 +88,13 @@ void SHA512::process_block(const unsigned char* char_block)
   unsigned long long expanded_blk[80];
   register unsigned int loop;
 
-  /* Rotational shift to the right */
+  // Rotational shift to the right
   auto ROTR = [](unsigned long long x, unsigned int n) { return (((x & 0xFFFFFFFFFFFFFFFFLL) >> n) | (x << (64 - n))); };
 
-  /* Shift to the right */
+  // Shift to the right
   auto SHR = [](unsigned long long x, unsigned int n) { return ((x & 0xFFFFFFFFFFFFFFFFLL) >> n); };
 
-  /* SHA-512 uses six functions */
+  // SHA-512 uses six functions
   auto SHA512_F1 = [](unsigned long long x, unsigned long long y, unsigned long long z) { return ((x & y) | (z & (x | y))); };
   auto SHA512_F2 = [](unsigned long long x, unsigned long long y, unsigned long long z) { return (z ^ (x & (y ^ z))); };
   auto SHA512_F3 = [ROTR](unsigned long long x) { return (ROTR(x,28) ^ ROTR(x,34) ^ ROTR(x,39)); };
@@ -138,37 +102,38 @@ void SHA512::process_block(const unsigned char* char_block)
   auto SHA512_F5 = [ROTR, SHR](unsigned long long x) { return (ROTR(x, 1) ^ ROTR(x, 8) ^  SHR(x, 7)); };
   auto SHA512_F6 = [ROTR, SHR](unsigned long long x) { return (ROTR(x,19) ^ ROTR(x,61) ^  SHR(x, 6)); };
 
-  /* convert the block from unsigned char to unsigned long long */
+  // convert the block from unsigned char to unsigned long long
   for (loop = 0; loop < 16; loop++)
-      expanded_blk[loop] =
-          (((unsigned long long) (char_block[(loop*8)]))   << 56) |
-          (((unsigned long long) (char_block[(loop*8)+1])) << 48) |
-          (((unsigned long long) (char_block[(loop*8)+2])) << 40) |
-          (((unsigned long long) (char_block[(loop*8)+3])) << 32) |
-          (((unsigned long long) (char_block[(loop*8)+4])) << 24) |
-          (((unsigned long long) (char_block[(loop*8)+5])) << 16) |
-          (((unsigned long long) (char_block[(loop*8)+6])) << 8)  |
-          (((unsigned long long) (char_block[(loop*8)+7])));
+  {
+      expanded_blk[loop] = (((unsigned long long) (char_block[(loop*8)]))   << 56) |
+                           (((unsigned long long) (char_block[(loop*8)+1])) << 48) |
+                           (((unsigned long long) (char_block[(loop*8)+2])) << 40) |
+                           (((unsigned long long) (char_block[(loop*8)+3])) << 32) |
+                           (((unsigned long long) (char_block[(loop*8)+4])) << 24) |
+                           (((unsigned long long) (char_block[(loop*8)+5])) << 16) |
+                           (((unsigned long long) (char_block[(loop*8)+6])) << 8)  |
+                           (((unsigned long long) (char_block[(loop*8)+7])));
+  }
 
-  /* expanding the block from 16 to 80 */
+  // expanding the block from 16 to 80
   for (loop = 16; loop < 80; loop++)
       expanded_blk[loop] = SHA512_F6(expanded_blk[loop-2]) +
                            expanded_blk[loop-7] +
                            SHA512_F5(expanded_blk[loop-15]) +
                            expanded_blk[loop-16];
 
-  /* initialize working variables for this block */
-  a = A;
-  b = B;
-  c = C;
-  d = D;
-  e = E;
-  f = F;
-  g = G;
-  h = H;
+  // initialize working variables for this block
+  a = SHA512_A;
+  b = SHA512_B;
+  c = SHA512_C;
+  d = SHA512_D;
+  e = SHA512_E;
+  f = SHA512_F;
+  g = SHA512_G;
+  h = SHA512_H;
 
 
-  /* processing stuff */
+  // process block
   for (loop = 0; loop < 80; loop++)
   {
       temp1 = h + SHA512_F4(e) + SHA512_F2(e, f, g) + SHA512_CONSTANTS[loop] + expanded_blk[loop];
@@ -185,13 +150,13 @@ void SHA512::process_block(const unsigned char* char_block)
 
   }
 
-  /* set the hash value for next block */
-  A += a;
-  B += b;
-  C += c;
-  D += d;
-  E += e;
-  F += f;
-  G += g;
-  H += h;
+  // set the hash value for next block
+  SHA512_A += a;
+  SHA512_B += b;
+  SHA512_C += c;
+  SHA512_D += d;
+  SHA512_E += e;
+  SHA512_F += f;
+  SHA512_G += g;
+  SHA512_H += h;
 }

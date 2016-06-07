@@ -55,7 +55,7 @@ class Hash
      * \param[in] file already opened file.
      *
      */
-    virtual void update(QFile &file);
+    virtual void update(QFile &file) = 0;
 
     /** \brief Updated the hash with the contents of the buffer.
      * \param[in] buffer data buffer.

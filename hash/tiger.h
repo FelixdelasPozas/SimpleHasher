@@ -33,13 +33,15 @@ class Tiger
     /** \brief Tiger class constructor.
      *
      */
-    Tiger();
+    Tiger(unsigned long long *table = nullptr);
 
     /** \brief Tiger class virtual destructor.
      *
      */
     virtual ~Tiger()
     {};
+
+    virtual void update(QFile &file);
 
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
@@ -64,12 +66,20 @@ class Tiger
      */
     void generate_table(const unsigned char *message, const unsigned int passes_number);
 
-    unsigned long long tiger_table[1024]; /** tiger table values. */
-    static QString RANDOM_VALUE;  /** seed for table generation. */
-    static int PASSES_NUMBER; /** number of passes for table generation. */
-    static int BLOCK_PASSES; /** number of passes when processing the data block. */
+    static QString RANDOM_VALUE;  /** seed for table generation.                       */
+    static int PASSES_NUMBER;     /** number of passes for table generation.           */
+    static int BLOCK_PASSES;      /** number of passes when processing the data block. */
 
-    unsigned long long A, B, C; /** chaining variables. */
+    typedef struct
+    {
+        unsigned long long a;
+        unsigned long long b;
+        unsigned long long c;
+    }
+    TIGER_HASH;
+
+    /** chaining variables. */
+    TIGER_HASH hash;
 };
 
 #endif // HASH_TIGER_H_

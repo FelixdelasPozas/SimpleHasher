@@ -34,6 +34,8 @@ class SHA384
     virtual ~SHA384()
     {};
 
+    virtual void update(QFile &file);
+
     virtual void update(const QByteArray &buffer, const unsigned long long message_length);
 
     virtual const QString value();
@@ -48,9 +50,17 @@ class SHA384
      * \param[in] char_block data buffer at maximum 64 bytes in size.
      *
      */
-    void process_block(const unsigned char *char_block);
+    virtual void process_block(const unsigned char *char_block);
 
-    unsigned long long A, B, C, D, E, F, G, H;
+    /** chaining variables. */
+    unsigned long long int SHA384_A;
+    unsigned long long int SHA384_B;
+    unsigned long long int SHA384_C;
+    unsigned long long int SHA384_D;
+    unsigned long long int SHA384_E;
+    unsigned long long int SHA384_F;
+    unsigned long long int SHA384_G;
+    unsigned long long int SHA384_H;
 };
 
 #endif // HASH_SHA384_H_

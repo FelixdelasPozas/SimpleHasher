@@ -20,56 +20,85 @@
 // Project
 #include <hash/Tiger.h>
 
-/* 512 bits (64 chars) "random value" for the generation of the s-boxes */
-/* originally defined as 16 32-bits words                               */
+// 512 bits (64 chars) "random value" for the generation of the s-boxes.
 QString Tiger::RANDOM_VALUE = QString("Tiger - A Fast New Hash Function, by Ross Anderson and Eli Biham");
+
+// Default parameters used.
 int Tiger::PASSES_NUMBER = 5;
 int Tiger::BLOCK_PASSES = 3;
 
+static unsigned long long tiger_table[1024]; /** tiger table values. */
+
 //----------------------------------------------------------------
-Tiger::Tiger()
+Tiger::Tiger(unsigned long long *table)
 : Hash{}
-, A{0x0123456789abcdefULL}
-, B{0xfedcba9876543210ULL}
-, C{0xf096a5b4c3b2e187ULL}
 {
-  // Initialize chaining values.
+  // initialize chaining variables
+  hash.a = 0x0123456789abcdefULL;
+  hash.b = 0xfedcba9876543210ULL;
+  hash.c = 0xf096a5b4c3b2e187ULL;
 
-  // Generate table.
-  generate_table(reinterpret_cast<const unsigned char *>(RANDOM_VALUE.toStdString().c_str()), PASSES_NUMBER);
+  if(!table)
+  {
+    // Generate table.
+    generate_table(reinterpret_cast<const unsigned char *>(RANDOM_VALUE.toStdString().c_str()), PASSES_NUMBER);
 
-  // Reset the values after the table generation.
-  A = 0x0123456789abcdefULL;
-  B = 0xfedcba9876543210ULL;
-  C = 0xf096a5b4c3b2e187ULL;
+    // Reset the values after the table generation.
+    hash.a = 0x0123456789abcdefULL;
+    hash.b = 0xfedcba9876543210ULL;
+    hash.c = 0xf096a5b4c3b2e187ULL;
+  }
+}
+
+//----------------------------------------------------------------
+void Tiger::update(QFile &file)
+{
+  unsigned long long message_length = 0;
+  const unsigned long long fileSize = file.size();
+
+  while(fileSize != message_length)
+  {
+    auto block = file.read(64);
+    message_length += block.length();
+    update(block, message_length);
+
+    // last block needs to be processed
+    if((fileSize == message_length) && (block.size() == 64))
+    {
+      update(QByteArray(), message_length);
+    }
+
+    emit progress((100*message_length)/fileSize);
+  }
 }
 
 //----------------------------------------------------------------
 void Tiger::update(const QByteArray& buffer, const unsigned long long message_length)
 {
-  if (64 == buffer.length())
+  auto length = buffer.length();
+
+  if (64 == length)
   {
     process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
     return;
   }
 
-  /* buffer length < 64, padding needed */
   QByteArray finalBuffer{64,0};
 
-  /* copy the remaining bytes of the message to a temporal block */
-  memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
+  // copy the remaining bytes of the message to a temporal block
+  memcpy(finalBuffer.data(), buffer.constData(), length);
 
-  /* padding the message */
-  finalBuffer[buffer.length()] = 0x01;
+  // padding the message
+  finalBuffer[length++] = 0x01;
 
-  /* is this block too big? if so fill zeroes, process and make another */
-  if(buffer.length() > 56)
+  // is this block too big? if so fill zeroes, process and make another
+  if(length > 56)
   {
     process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
     memset(finalBuffer.data(), 0x00, 64);
   }
 
-  /* insert message length */
+  // insert message length at the end of block
   ((unsigned long long*)(&(finalBuffer.data()[56])))[0] = ((unsigned long long)message_length)<<3;
 
   process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
@@ -78,19 +107,9 @@ void Tiger::update(const QByteArray& buffer, const unsigned long long message_le
 //----------------------------------------------------------------
 const QString Tiger::value()
 {
-  unsigned long a1 = ((A >> 32) & 0x00000000FFFFFFFF);
-  unsigned long a2 = (A & 0x00000000FFFFFFFF);
-  unsigned long b1 = ((B >> 32) & 0x00000000FFFFFFFF);
-  unsigned long b2 = (B & 0x00000000FFFFFFFF);
-  unsigned long c1 = ((C >> 32) & 0x00000000FFFFFFFF);
-  unsigned long c2 = (C & 0x00000000FFFFFFFF);
-
-  return QString("%1 %2 %3 %4 %5 %6").arg(a1, 4, 16, QChar('0'))
-                                     .arg(a2, 4, 16, QChar('0'))
-                                     .arg(b1, 4, 16, QChar('0'))
-                                     .arg(b2, 4, 16, QChar('0'))
-                                     .arg(c1, 4, 16, QChar('0'))
-                                     .arg(c2, 4, 16, QChar('0'));
+  return QString("%1 %2 %3").arg(hash.a, 16, 16, QChar('0'))
+                            .arg(hash.b, 16, 16, QChar('0'))
+                            .arg(hash.c, 16, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
@@ -101,20 +120,20 @@ void Tiger::process_block(const unsigned char* char_block)
   unsigned long long block[8];
   int pass_number, loop, mult;
 
-  /* init state, block 64 bit long longs, and save state values */
-  a_temp = a = A;
-  b_temp = b = B;
-  c_temp = c = C;
+  // init state, block 64 bit long longs, and save state values
+  a_temp = a = hash.a;
+  b_temp = b = hash.b;
+  c_temp = c = hash.c;
 
   for(loop = 0; loop < 8; loop++)
   {
     block[loop] = reinterpret_cast<const unsigned long long *>(char_block)[loop];
   }
 
-  /* processing, PASSES is 3 or more */
+  // processing, PASSES is 3 or more
   for(pass_number = 0; pass_number < BLOCK_PASSES; pass_number++)
   {
-    /* if it's not our first pass, key schedule */
+    // if it's not our first pass, key schedule
     if(pass_number != 0)
     {
       block[0] -= block[7] ^ 0xA5A5A5A5A5A5A5A5LL;
@@ -135,7 +154,6 @@ void Tiger::process_block(const unsigned char* char_block)
       block[7] -= block[6] ^ 0x0123456789ABCDEFLL;
     }
 
-    /* first pass mult = 5, second = 7, third or more = 9 */
     switch (pass_number)
     {
       case 0:
@@ -148,7 +166,7 @@ void Tiger::process_block(const unsigned char* char_block)
         mult = 9;
     }
 
-    /* the real work */
+    // the real work
     for (loop = 0; loop < 8; loop++)
     {
       c ^= block[loop];
@@ -169,20 +187,20 @@ void Tiger::process_block(const unsigned char* char_block)
     }
   }
 
-  /* feed forward and return */
+  // feed forward and return
   a ^= a_temp;
   b -= b_temp;
   c += c_temp;
 
-  A = a;
-  B = b;
-  C = c;
+  hash.a = a;
+  hash.b = b;
+  hash.c = c;
 }
 
 //----------------------------------------------------------------
 HashSPtr Tiger::clone() const
 {
-  auto instance = std::make_shared<Tiger>();
+  auto instance = std::make_shared<Tiger>(tiger_table);
 
   return instance;
 }
@@ -194,34 +212,22 @@ void Tiger::generate_table(const unsigned char *message, const unsigned int pass
   unsigned char temp_char;
   unsigned char *table_chars, *state_chars;
 
-  /* a char is used as index for filling starting values to the table */
-  table_chars = (unsigned char *) tiger_table;
+  // a char is used as index for filling starting values to the table
+  table_chars = reinterpret_cast<unsigned char *>(tiger_table);
+  state_chars = reinterpret_cast<unsigned char *>(&hash);
 
-  struct
-  {
-    unsigned long long a;
-    unsigned long long b;
-    unsigned long long c;
-  } hash;
-
-  hash.a = A;
-  hash.b = B;
-  hash.c = C;
-
-  state_chars = (unsigned char *) &hash;
-
-  /* fill the table */
+  // fill the table
   for (loop = 0; loop < 1024; loop++)
   {
     for (column = 0; column < 8; column++)
     {
-      table_chars[((8 * loop) + column)] = (unsigned char) (loop & 0xFF);
+      table_chars[((8 * loop) + column)] = static_cast<unsigned char>(loop & 0xFF);
     }
   }
 
   abc = 2;
 
-  /* generation */
+  // generation
   for (passes = 0; passes < passes_number; passes++)
   {
     for (loop = 0; loop < 256; loop++)

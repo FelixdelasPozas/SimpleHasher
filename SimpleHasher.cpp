@@ -32,6 +32,7 @@
 // Qt
 #include <QFileDialog>
 #include <QStringListModel>
+#include <QFontDatabase>
 
 //----------------------------------------------------------------
 SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
@@ -54,7 +55,7 @@ SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
   m_hashTable->horizontalHeader()->setSectionsClickable(false);
   m_hashTable->horizontalHeader()->setDefaultAlignment(Qt::AlignCenter);
   m_hashTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-  m_hashTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+  m_hashTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeMode::ResizeToContents);
 
   connectSignals();
 }
@@ -221,6 +222,10 @@ void SimpleHasher::onComputationFinished()
   }
 
   m_thread = nullptr;
+  for(int i = 0; i < m_hashTable->columnCount(); ++i)
+  {
+    m_hashTable->resizeColumnToContents(i);
+  }
   hideProgress();
 }
 
@@ -256,6 +261,7 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
     for(int column = 1; column <= columnCount; ++column)
     {
       auto widget = new QLabel{"Not computed"};
+      widget->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       widget->setAlignment(Qt::AlignCenter);
 
       m_hashTable->setCellWidget(row, column, widget);
@@ -265,7 +271,10 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
   auto enabled = (m_hashTable->rowCount() != 0);
   if(enabled)
   {
-    m_hashTable->resizeColumnToContents(0);
+    for(int i = 0; i < m_hashTable->rowCount(); ++i)
+    {
+      m_hashTable->resizeColumnToContents(i);
+    }
   }
 
   m_removeFile->setEnabled(enabled);

@@ -17,18 +17,41 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Project
 #include <hash/SHA1.h>
 
 //----------------------------------------------------------------
 SHA1::SHA1()
 : Hash{}
-, A{0x67452301}
-, B{0xEFCDAB89}
-, C{0x98BADCFE}
-, D{0x10325476}
-, E{0xC3D2E1F0}
+, SHA1_A{0x67452301}
+, SHA1_B{0xEFCDAB89}
+, SHA1_C{0x98BADCFE}
+, SHA1_D{0x10325476}
+, SHA1_E{0xC3D2E1F0}
 {
   // initialize chaining variables.
+}
+
+//----------------------------------------------------------------
+void SHA1::update(QFile &file)
+{
+  unsigned long long message_length = 0;
+  const unsigned long long fileSize = file.size();
+
+  while(fileSize != message_length)
+  {
+    auto block = file.read(64);
+    message_length += block.length();
+    update(block, message_length * 8);
+
+    // last block needs to be processed
+    if((fileSize == message_length) && (block.size() == 64))
+    {
+      update(QByteArray(), message_length * 8);
+    }
+
+    emit progress((100*message_length)/fileSize);
+  }
 }
 
 //----------------------------------------------------------------
@@ -46,8 +69,8 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
   memcpy(finalBuffer.data(), buffer.constData(), length);
   finalBuffer[length++] = 0x80;
 
-  /* if length < 55 there is space for message length, we process 1 block */
-  /* if not, we need to process two blocks                                */
+  // if length < 55 there is space for message length, we process 1 block
+  // if not, we need to process two blocks
   if (length >= 56)
   {
     process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
@@ -65,11 +88,11 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
 //----------------------------------------------------------------
 const QString SHA1::value()
 {
-  return QString("%1 %2 %3 %4 %5").arg(A, 8, 16, QChar('0'))
-                                  .arg(B, 8, 16, QChar('0'))
-                                  .arg(C, 8, 16, QChar('0'))
-                                  .arg(D, 8, 16, QChar('0'))
-                                  .arg(E, 8, 16, QChar('0'));
+  return QString("%1 %2 %3 %4 %5").arg(SHA1_A, 8, 16, QChar('0'))
+                                  .arg(SHA1_B, 8, 16, QChar('0'))
+                                  .arg(SHA1_C, 8, 16, QChar('0'))
+                                  .arg(SHA1_D, 8, 16, QChar('0'))
+                                  .arg(SHA1_E, 8, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
@@ -111,13 +134,13 @@ void SHA1::process_block(const unsigned char *char_block)
     return ( ( x ^ y ^ z ) + 0xCA62C1D6);
   };
 
-  /* Rotational shift to the left */
+  // Rotational shift to the left
   auto ROTL = [](unsigned long x,  int n )
   {
     return ((x << n) | (( x & 0xFFFFFFFF ) >> ( 32 - n )));
   };
 
-  /* convert the block from unsigned char to unsigned long */
+  // convert the block from unsigned char to unsigned long
   for (loop = 0; loop < 16; loop++)
   {
     expanded_blk[loop] = ((unsigned long) (char_block[(loop*4)]   << 24)) |
@@ -126,7 +149,7 @@ void SHA1::process_block(const unsigned char *char_block)
                          ((unsigned long) (char_block[(loop*4)+3]));
   }
 
-  /* expanding the block from 16 to 80 */
+  // expanding the block from 16 to 80
   for (loop = 16; loop < 80; loop++)
   {
     expanded_blk[loop] = ROTL((((expanded_blk[loop-3]   ^
@@ -135,14 +158,14 @@ void SHA1::process_block(const unsigned char *char_block)
                                  expanded_blk[loop-16]), 1);
   }
 
-  /* initialize working variables for this block */
-  a = A;
-  b = B;
-  c = C;
-  d = D;
-  e = E;
+  // initialize working variables for this block
+  a = SHA1_A;
+  b = SHA1_B;
+  c = SHA1_C;
+  d = SHA1_D;
+  e = SHA1_E;
 
-  /* processing stuff */
+  // processing
   for (loop = 0; loop < 80; loop++)
   {
       temp = ROTL(a,5) + Function(loop,b,c,d) + e + expanded_blk[loop];
@@ -153,10 +176,10 @@ void SHA1::process_block(const unsigned char *char_block)
       a = temp;
   }
 
-  /* set the hash value for next block */
-  A += a;
-  B += b;
-  C += c;
-  D += d;
-  E += e;
+  // set the hash value for next block
+  SHA1_A += a;
+  SHA1_B += b;
+  SHA1_C += c;
+  SHA1_D += d;
+  SHA1_E += e;
 }

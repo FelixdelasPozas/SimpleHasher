@@ -20,7 +20,7 @@
 // Project
 #include <hash/SHA384.h>
 
-/* SHA-384 Constants */
+/** SHA-384 Constants */
 static const unsigned long long SHA384_CONSTANTS[80] =
 {
   0x428A2F98D728AE22LL, 0x7137449123EF65CDLL, 0xB5C0FBCFEC4D3B2FLL, 0xE9B5DBA58189DBBCLL,
@@ -48,49 +48,67 @@ static const unsigned long long SHA384_CONSTANTS[80] =
 //----------------------------------------------------------------
 SHA384::SHA384()
 : Hash{}
-, A{0xCBBB9D5DC1059ED8LL}
-, B{0x629A292A367CD507LL}
-, C{0x9159015A3070DD17LL}
-, D{0x152FECD8F70E5939LL}
-, E{0x67332667FFC00B31LL}
-, F{0x8EB44A8768581511LL}
-, G{0xDB0C2E0D64F98FA7LL}
-, H{0x47B5481DBEFA4FA4LL}
+, SHA384_A{0xCBBB9D5DC1059ED8LL}
+, SHA384_B{0x629A292A367CD507LL}
+, SHA384_C{0x9159015A3070DD17LL}
+, SHA384_D{0x152FECD8F70E5939LL}
+, SHA384_E{0x67332667FFC00B31LL}
+, SHA384_F{0x8EB44A8768581511LL}
+, SHA384_G{0xDB0C2E0D64F98FA7LL}
+, SHA384_H{0x47B5481DBEFA4FA4LL}
 {
   // Initialize chaining variables.
 }
 
 //----------------------------------------------------------------
+void SHA384::update(QFile &file)
+{
+  unsigned long long message_length = 0;
+  const unsigned long long fileSize = file.size();
+
+  while(fileSize != message_length)
+  {
+    auto block = file.read(128);
+    message_length += block.length();
+    update(block, message_length * 8);
+
+    // last block needs to be processed
+    if((fileSize == message_length) && (block.size() == 128))
+    {
+      update(QByteArray(), message_length * 8);
+    }
+
+    emit progress((100*message_length)/fileSize);
+  }
+}
+
+//----------------------------------------------------------------
 void SHA384::update(const QByteArray& buffer, const unsigned long long message_length)
 {
-  register unsigned int loop;
+  auto length = buffer.length();
 
-  if (64 == buffer.length())
+  if (128 == length)
   {
-      process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
-      return;
+    process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
+    return;
   }
 
-  QByteArray finalBuffer{64,0};
+  QByteArray finalBuffer{128,0};
   memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
-  finalBuffer[buffer.length()] = 0x80;
+  finalBuffer[length++] = 0x80;
 
-  for(auto i = buffer.length(); i < 64; ++i)
+  // if length < 55 there is space for message length, we process 1 block
+  // if not, we need to process two blocks
+  if (length >= 112)
   {
-    finalBuffer[i] = 0;
+    process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
+    memset(finalBuffer.data(), 0x00, 128);
   }
 
-  /* if length < 55 there is space for message length, we process 1 block */
-  /* if not, we need to process two blocks                                */
-  if (buffer.length() >= 56)
+  for (unsigned int loop = 0; loop < 8; loop++)
   {
-      process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-      memset(finalBuffer.data(), 0x00, 64);
-  }
-
-  for (loop = 0; loop < 8; loop++)
-  {
-    finalBuffer[56+loop] = ((message_length) >> (8 * loop)) & 0xFF;
+    finalBuffer[112+loop] = 0x00;
+    finalBuffer[120+loop] = static_cast<unsigned char>(((message_length) >> (56 - (8 * loop))) & 0xFF);
   }
 
   process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
@@ -99,12 +117,12 @@ void SHA384::update(const QByteArray& buffer, const unsigned long long message_l
 //----------------------------------------------------------------
 const QString SHA384::value()
 {
-  return QString("%1 %2 %3 %4 %5 %6").arg(A, 8, 16, QChar('0'))
-                                     .arg(B, 8, 16, QChar('0'))
-                                     .arg(C, 8, 16, QChar('0'))
-                                     .arg(D, 8, 16, QChar('0'))
-                                     .arg(E, 8, 16, QChar('0'))
-                                     .arg(F, 8, 16, QChar('0'));
+  return QString("%1 %2 %3\n%4 %5 %6").arg(SHA384_A, 16, 16, QChar('0'))
+                                      .arg(SHA384_B, 16, 16, QChar('0'))
+                                      .arg(SHA384_C, 16, 16, QChar('0'))
+                                      .arg(SHA384_D, 16, 16, QChar('0'))
+                                      .arg(SHA384_E, 16, 16, QChar('0'))
+                                      .arg(SHA384_F, 16, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
@@ -122,13 +140,13 @@ void SHA384::process_block(const unsigned char* char_block)
   unsigned long long expanded_blk[80];
   register unsigned int loop;
 
-  /* Rotational shift to the right */
+  // Rotational shift to the right
   auto ROTR = [](unsigned long long x, unsigned int n) { return (((x & 0xFFFFFFFFFFFFFFFFLL) >> n) | (x << (64 - n))); };
 
-  /* Shift to the right */
+  // Shift to the right
   auto SHR = [](unsigned long long x, unsigned int n) { return ((x & 0xFFFFFFFFFFFFFFFFLL) >> n); };
 
-  /* SHA-384 uses six functions */
+  // SHA-384 uses six functions.
   auto SHA384_F1 = [](unsigned long long x, unsigned long long y, unsigned long long z) { return ((x & y) | (z & (x | y))); };
   auto SHA384_F2 = [](unsigned long long x, unsigned long long y, unsigned long long z) { return (z ^ (x & (y ^ z))); };
   auto SHA384_F3 = [ROTR](unsigned long long x) { return (ROTR(x,28) ^ ROTR(x,34) ^ ROTR(x,39)); };
@@ -136,7 +154,7 @@ void SHA384::process_block(const unsigned char* char_block)
   auto SHA384_F5 = [ROTR, SHR](unsigned long long x) { return (ROTR(x, 1) ^ ROTR(x, 8) ^  SHR(x, 7)); };
   auto SHA384_F6 = [ROTR, SHR](unsigned long long x) { return (ROTR(x,19) ^ ROTR(x,61) ^  SHR(x, 6)); };
 
-  /* convert the block from unsigned char to unsigned long long */
+  // convert the block from unsigned char to unsigned long long
   for (loop = 0; loop < 16; loop++)
   {
     expanded_blk[loop] = (((unsigned long long) (char_block[(loop*8)]))   << 56) |
@@ -149,7 +167,7 @@ void SHA384::process_block(const unsigned char* char_block)
                          (((unsigned long long) (char_block[(loop*8)+7])));
   }
 
-  /* expanding the block from 16 to 80 */
+  // expanding the block from 16 to 80
   for (loop = 16; loop < 80; loop++)
   {
     expanded_blk[loop] = SHA384_F6(expanded_blk[loop-2]) +
@@ -158,17 +176,17 @@ void SHA384::process_block(const unsigned char* char_block)
                          expanded_blk[loop-16];
   }
 
-  /* initialize working variables for this block */
-  a = A;
-  b = B;
-  c = C;
-  d = D;
-  e = E;
-  f = F;
-  g = G;
-  h = H;
+  // initialize working variables for this block
+  a = SHA384_A;
+  b = SHA384_B;
+  c = SHA384_C;
+  d = SHA384_D;
+  e = SHA384_E;
+  f = SHA384_F;
+  g = SHA384_G;
+  h = SHA384_H;
 
-  /** process block */
+  // process block
   for (loop = 0; loop < 80; loop++)
   {
       temp1 = h + SHA384_F4(e) + SHA384_F2(e, f, g) + SHA384_CONSTANTS[loop] + expanded_blk[loop];
@@ -184,13 +202,13 @@ void SHA384::process_block(const unsigned char* char_block)
       a = temp1 + temp2;
   }
 
-  /* set the hash value for next block */
-  A += a;
-  B += b;
-  C += c;
-  D += d;
-  E += e;
-  F += f;
-  G += g;
-  H += h;
+  // set the hash value for next block
+  SHA384_A += a;
+  SHA384_B += b;
+  SHA384_C += c;
+  SHA384_D += d;
+  SHA384_E += e;
+  SHA384_F += f;
+  SHA384_G += g;
+  SHA384_H += h;
 }

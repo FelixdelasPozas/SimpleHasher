@@ -19,7 +19,7 @@
 
 #include <hash/SHA256.h>
 
-/* SHA-256 Constants */
+/** SHA-256 Constants */
 static const unsigned long SHA256_CONSTANTS[64] =
 {
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -34,66 +34,30 @@ static const unsigned long SHA256_CONSTANTS[64] =
 
 //----------------------------------------------------------------
 SHA256::SHA256()
-: Hash{}
-, A{0x6a09e667}
-, B{0xbb67ae85}
-, C{0x3c6ef372}
-, D{0xa54ff53a}
-, E{0x510e527f}
-, F{0x9b05688c}
-, G{0x1f83d9ab}
-, H{0x5be0cd19}
+: SHA1{}
+, SHA256_A{0x6a09e667}
+, SHA256_B{0xbb67ae85}
+, SHA256_C{0x3c6ef372}
+, SHA256_D{0xa54ff53a}
+, SHA256_E{0x510e527f}
+, SHA256_F{0x9b05688c}
+, SHA256_G{0x1f83d9ab}
+, SHA256_H{0x5be0cd19}
 {
   // initialize chaining variables.
 }
 
 //----------------------------------------------------------------
-void SHA256::update(const QByteArray& buffer, const unsigned long long message_length)
-{
-  register unsigned int loop;
-
-  if (64 == buffer.length())
-  {
-      process_block(reinterpret_cast<const unsigned char *>(buffer.constData()));
-      return;
-  }
-
-  QByteArray finalBuffer{64,0};
-  memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
-  finalBuffer[buffer.length()] = 0x80;
-
-  for(auto i = buffer.length(); i < 64; ++i)
-  {
-    finalBuffer[i] = 0;
-  }
-
-  /* if length < 55 there is space for message length, we process 1 block */
-  /* if not, we need to process two blocks                                */
-  if (buffer.length() >= 56)
-  {
-      process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-      memset(finalBuffer.data(), 0x00, 64);
-  }
-
-  for (loop = 0; loop < 8; loop++)
-  {
-    finalBuffer[56+loop] = ((message_length) >> (8 * loop)) & 0xFF;
-  }
-
-  process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-}
-
-//----------------------------------------------------------------
 const QString SHA256::value()
 {
-  return QString("%1 %2 %3 %4 %5 %6 %7").arg(A, 4, 16, QChar('0'))
-                                        .arg(B, 4, 16, QChar('0'))
-                                        .arg(C, 4, 16, QChar('0'))
-                                        .arg(D, 4, 16, QChar('0'))
-                                        .arg(E, 4, 16, QChar('0'))
-                                        .arg(F, 4, 16, QChar('0'))
-                                        .arg(G, 4, 16, QChar('0'))
-                                        .arg(H, 4, 16, QChar('0'));
+  return QString("%1 %2 %3 %4 %5 %6 %7 %8").arg(SHA256_A, 8, 16, QChar('0'))
+                                           .arg(SHA256_B, 8, 16, QChar('0'))
+                                           .arg(SHA256_C, 8, 16, QChar('0'))
+                                           .arg(SHA256_D, 8, 16, QChar('0'))
+                                           .arg(SHA256_E, 8, 16, QChar('0'))
+                                           .arg(SHA256_F, 8, 16, QChar('0'))
+                                           .arg(SHA256_G, 8, 16, QChar('0'))
+                                           .arg(SHA256_H, 8, 16, QChar('0'));
 }
 
 //----------------------------------------------------------------
@@ -111,17 +75,13 @@ void SHA256::process_block(const unsigned char* char_block)
   unsigned long expanded_blk[64];
   register unsigned int loop;
 
-  /* Rotational shift to the right */
+  // Rotational shift to the right
   auto ROTR = [](unsigned long x, unsigned int n) { return (((x & 0xFFFFFFFF) >> n) | (x << (32 - n))); };
 
-  /* Shift to the right */
+  // Shift to the right
   auto SHR = [](unsigned long x, unsigned int n) { return ((x & 0xFFFFFFFF) >> n); };
 
-  /* SHA-256 uses six functions, as they do not depend on loop index we can   */
-  /* inline them. In SHA-1 things were different, as different functions were */
-  /* applied depending on the loop index, we could inline them but as we used */
-  /* a function based on the loop index the overhead of calling a function    */
-  /* was the same.                                                            */
+  // SHA-256 uses six functions. As they do not depend on loop index we could inline them.
   auto SHA256_F1 = [](unsigned long x, unsigned long y, unsigned long z) { return ((x & y) | (z & (x | y))); };
   auto SHA256_F2 = [](unsigned long x, unsigned long y, unsigned long z) { return (z ^ (x & (y ^ z))); };
   auto SHA256_F3 = [ROTR](unsigned long x) { return (ROTR(x, 2) ^ ROTR(x,13) ^ ROTR(x,22)); };
@@ -129,7 +89,7 @@ void SHA256::process_block(const unsigned char* char_block)
   auto SHA256_F5 = [ROTR, SHR](unsigned long x) { return (ROTR(x, 7) ^ ROTR(x,18) ^  SHR(x, 3)); };
   auto SHA256_F6 = [ROTR, SHR](unsigned long x) { return (ROTR(x,17) ^ ROTR(x,19) ^  SHR(x,10)); };
 
-  /* convert the block from unsigned char to unsigned long */
+  // convert the block from unsigned char to unsigned long
   for (loop = 0; loop < 16; loop++)
   {
     expanded_blk[loop] = ((unsigned long) (char_block[(loop*4)]   << 24)) |
@@ -138,7 +98,7 @@ void SHA256::process_block(const unsigned char* char_block)
                          ((unsigned long) (char_block[(loop*4)+3]));
   }
 
-  /* expanding the block from 16 to 80 */
+  // expanding the block from 16 to 80
   for (loop = 16; loop < 64; loop++)
   {
     expanded_blk[loop] = SHA256_F6(expanded_blk[loop-2]) +
@@ -147,18 +107,18 @@ void SHA256::process_block(const unsigned char* char_block)
                          expanded_blk[loop-16];
   }
 
-  /* initialize working variables for this block */
-  a = A;
-  b = B;
-  c = C;
-  d = D;
-  e = E;
-  f = F;
-  g = G;
-  h = H;
+  // initialize working variables for this block
+  a = SHA256_A;
+  b = SHA256_B;
+  c = SHA256_C;
+  d = SHA256_D;
+  e = SHA256_E;
+  f = SHA256_F;
+  g = SHA256_G;
+  h = SHA256_H;
 
 
-  /* processing stuff */
+  // process block
   for (loop = 0; loop < 64; loop++)
   {
       temp1 = h + SHA256_F4(e) + SHA256_F2(e, f, g) + SHA256_CONSTANTS[loop] + expanded_blk[loop];
@@ -174,13 +134,13 @@ void SHA256::process_block(const unsigned char* char_block)
       a = temp1 + temp2;
   }
 
-  /* set the hash value for next block */
-  A += a;
-  B += b;
-  C += c;
-  D += d;
-  E += e;
-  F += f;
-  G += g;
-  H += h;
+  // set the hash value for next block
+  SHA256_A += a;
+  SHA256_B += b;
+  SHA256_C += c;
+  SHA256_D += d;
+  SHA256_E += e;
+  SHA256_F += f;
+  SHA256_G += g;
+  SHA256_H += h;
 }

@@ -21,14 +21,14 @@
 #define HASH_SHA224_H_
 
 // Project
-#include <Hash.h>
+#include <hash/SHA1.h>
 
 /** \class SHA224
  * \brief Implements the Secure Hash Algorithm 2 of 224 bits.
  *
  */
 class SHA224
-: public Hash
+: public SHA1
 {
   public:
     /** \brief SHA224 class constructor.
@@ -42,23 +42,29 @@ class SHA224
     virtual ~SHA224()
     {};
 
-    virtual void update(const QByteArray &buffer, const unsigned long long message_length);
+    virtual const QString value() override;
 
-    virtual const QString value();
-
-    virtual const QString name()
+    virtual const QString name() override
     { return QString("SHA-224"); }
 
-    virtual HashSPtr clone() const;
+    virtual HashSPtr clone() const override;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.
      *
      */
-    void process_block(const unsigned char *char_block);
+    virtual void process_block(const unsigned char *char_block) override;
 
-    unsigned long A,B,C,D,E,F,G,H;
+    /** chaining variables */
+    unsigned long SHA224_A;
+    unsigned long SHA224_B;
+    unsigned long SHA224_C;
+    unsigned long SHA224_D;
+    unsigned long SHA224_E;
+    unsigned long SHA224_F;
+    unsigned long SHA224_G;
+    unsigned long SHA224_H;
 };
 
 #endif // HASH_SHA224_H_

@@ -21,14 +21,14 @@
 #define HASH_SHA512_H_
 
 // Project
-#include <Hash.h>
+#include <hash/SHA384.h>
 
 /** \class SHA512
  * \brief Implementation of the Secure Hash Algorithm 2 of 512 bits.
  *
  */
 class SHA512
-: public Hash
+: public SHA384
 {
   public:
     /** \brief SHA512 class constructor.
@@ -42,23 +42,29 @@ class SHA512
     virtual ~SHA512()
     {};
 
-    virtual void update(const QByteArray &buffer, const unsigned long long message_length);
+    virtual const QString value() override;
 
-    virtual const QString value();
-
-    virtual const QString name()
+    virtual const QString name() override
     { return QString("SHA-512"); }
 
-    virtual HashSPtr clone() const;
+    virtual HashSPtr clone() const override;
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.
      *
      */
-    void process_block(const unsigned char *char_block);
+    virtual void process_block(const unsigned char *char_block) override;
 
-    unsigned long long A, B, C, D, E, F, G, H;
+    /** chaining variables. */
+    unsigned long long SHA512_A;
+    unsigned long long SHA512_B;
+    unsigned long long SHA512_C;
+    unsigned long long SHA512_D;
+    unsigned long long SHA512_E;
+    unsigned long long SHA512_F;
+    unsigned long long SHA512_G;
+    unsigned long long SHA512_H;
 };
 
 #endif // HASH_SHA512_H_
