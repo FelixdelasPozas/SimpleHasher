@@ -31,6 +31,7 @@
 #include <Hash.h>
 
 class ComputerThread;
+class QPoint;
 
 class SimpleHasher
 : public QMainWindow
@@ -52,6 +53,8 @@ class SimpleHasher
     void onCheckBoxStateChanged();
     void onComputationFinished();
     void onHashComputed(const QString &file, const Hash *hash);
+    void copyHashesToClipboard();
+    void onContextMenuActivated(const QPoint &pos);
 
   private:
     static QString STATE_MD5;
@@ -68,7 +71,7 @@ class SimpleHasher
 
     void loadSettings();
     void saveSettings();
-
+    void createContextMenu();
     void connectSignals();
     void hideProgress();
     void showProgress();
@@ -82,6 +85,7 @@ class SimpleHasher
     bool                                   m_uppercase; /** true to show the hashes in uppercase.                           */
     QMap<QString, QMap<QString, HashSPtr>> m_results;   /** maps files -> computed hashes.                                  */
     QStringList                            m_headers;   /** list of column strings, just to avoid computing over and over.. */
+    std::shared_ptr<QMenu>                 m_menu;      /** contextual menu for the table.                                  */
 };
 
 #endif // SIMPLEHASHER_H_

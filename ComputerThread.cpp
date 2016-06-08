@@ -66,9 +66,6 @@ void ComputerThread::run()
 
   for(m_currentIndex = 0; m_currentIndex < size && !m_abort; ++m_currentIndex)
   {
-    // TODO: connect to hash signals to provide a better progress value.
-    emit progress((100 *(m_currentIndex+1))/size);
-
     auto filename = m_computations.keys().at(m_currentIndex);
     QFile file{filename};
 
@@ -99,6 +96,7 @@ void ComputerThread::run()
     dialog.setWindowTitle(tr("Errors in hash computation"));
     dialog.setText(tr("Some files couldn't be processed."));
     dialog.setDetailedText(fileErrors);
+    dialog.setIcon(QMessageBox::Icon::Critical);
 
     dialog.exec();
   }

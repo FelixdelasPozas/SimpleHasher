@@ -22,9 +22,27 @@
 
 // Qt
 #include <QApplication>
+#include <QDebug>
 
+// C++
+#include <iostream>
+
+//-----------------------------------------------------------------
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+  const char symbols[] =
+  { 'I', 'E', '!', 'X' };
+
+  QString output = QString("[%1] %2").arg(symbols[type]).arg(msg);
+  std::cerr << output.toStdString() << std::endl;
+  if (type == QtFatalMsg) abort();
+}
+
+//-----------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  qInstallMessageHandler(myMessageOutput);
+
 	QApplication app(argc, argv);
 
 	SimpleHasher hasher;

@@ -36,6 +36,7 @@
 #include <QSettings>
 #include <QVariant>
 #include <QMessageBox>
+#include <QMenu>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -78,6 +79,8 @@ SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
 
   hideProgress();
 
+  createContextMenu();
+
   connectSignals();
 }
 
@@ -90,7 +93,7 @@ SimpleHasher::~SimpleHasher()
 //----------------------------------------------------------------
 void SimpleHasher::onAboutPressed()
 {
-  AboutDialog dialog;
+  AboutDialog dialog{centralWidget()};
   dialog.exec();
 }
 
@@ -155,10 +158,10 @@ void SimpleHasher::onRemoveFilePressed()
   if(selectedIndexes.empty())
   {
     QMessageBox dialog(centralWidget());
-
     dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
     dialog.setWindowTitle(tr("Can't remove files"));
     dialog.setText(tr("You must select at least one cell from the file to be removed."));
+    dialog.setIcon(QMessageBox::Icon::Information);
 
     dialog.exec();
   }
@@ -246,6 +249,22 @@ void SimpleHasher::onCheckBoxStateChanged()
   if(m_sha512->isChecked()) labels << tr("SHA-512");
   if(m_tiger->isChecked())  labels << tr("Tiger");
 
+  if(labels.size() == 1)
+  {
+    auto checkbox = qobject_cast<QCheckBox *>(sender());
+    checkbox->setChecked(true);
+
+    QMessageBox dialog(centralWidget());
+    dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+    dialog.setWindowTitle(tr("Error selecting hash algorithms"));
+    dialog.setText(tr("At least one of the hash algorithms must be selected."));
+    dialog.setIcon(QMessageBox::Icon::Information);
+
+    dialog.exec();
+
+    return;
+  }
+
   for(int i = m_hashTable->columnCount(); i > labels.size(); --i)
   {
     m_hashTable->removeColumn(i-1);
@@ -291,7 +310,7 @@ void SimpleHasher::onComputationFinished()
 {
   disconnect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
   disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
-  disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const HashSPtr)), this, SLOT(onHashComputed(const QString &, const HashSPtr)));
+  disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
 
   auto results = m_thread->getResults();
 
@@ -300,8 +319,6 @@ void SimpleHasher::onComputationFinished()
     for(auto hash: results[m_files.at(i)])
     {
       m_results[m_files.at(i)][hash->name()] = hash;
-//      auto label = qobject_cast<QLabel *>(m_hashTable->cellWidget(i, 1));
-//      label->setText(hash->value());
     }
   }
 
@@ -391,6 +408,33 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
 }
 
 //----------------------------------------------------------------
+void SimpleHasher::createContextMenu()
+{
+  m_menu = std::make_shared<QMenu>(centralWidget());
+  auto copy = new QAction{QIcon{":/SimpleHasher/clipboard.svg"}, tr("Copy hashes to clipboard"), m_menu.get()};
+  m_menu->addAction(copy);
+
+  connect(copy, SIGNAL(triggered()), this, SLOT(copyHashesToClipboard()));
+
+  m_hashTable->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(m_hashTable, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(onContextMenuActivated(const QPoint &)));
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::copyHashesToClipboard()
+{
+  // TODO
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::onContextMenuActivated(const QPoint &pos)
+{
+  if(!m_hashTable->isEnabled()) return;
+
+  m_menu->popup(m_hashTable->mapToGlobal(pos));
+}
+
+//----------------------------------------------------------------
 void SimpleHasher::addFilesToTable(const QStringList &files)
 {
   m_hashTable->setEnabled(true);
@@ -417,7 +461,7 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
     auto filename = file.split(QChar('/')).last();
 
     m_hashTable->insertRow(row);
-    m_hashTable->setCellWidget(row, 0, new QLabel{filename});
+    m_hashTable->setCellWidget(row, 0, new QLabel{tr("<b>%1</b>").arg(filename)});
 
     for(int column = 1; column <= columnCount; ++column)
     {
