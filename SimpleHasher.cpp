@@ -38,6 +38,7 @@
 #include <QVariant>
 #include <QMessageBox>
 #include <QMenu>
+#include <QClipboard>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -425,7 +426,33 @@ void SimpleHasher::createContextMenu()
 //----------------------------------------------------------------
 void SimpleHasher::copyHashesToClipboard()
 {
-  // TODO
+  auto selectedIndexes = m_hashTable->selectionModel()->selectedIndexes();
+
+  if(!selectedIndexes.isEmpty())
+  {
+    QString text;
+    QList<int> indexes;
+    for(auto index: selectedIndexes)
+    {
+      if(index.column() == 0) return;
+
+      if(index != selectedIndexes.first())
+      {
+        text += tr("\n");
+      }
+
+      auto name  = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), 0));
+      auto filename = name->text().remove("<b>").remove("</b>");
+      text += tr("%1 (%2) - ").arg(filename).arg(m_headers.at(index.column()));
+      auto label = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), index.column()));
+      text += label->text().replace('\n', ' ');
+    }
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->clear();
+
+    clipboard->setText(text);
+  }
 }
 
 //----------------------------------------------------------------
