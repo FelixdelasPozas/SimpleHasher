@@ -28,6 +28,7 @@
 #include <hash/SHA512.h>
 #include <hash/Tiger.h>
 #include <ComputerThread.h>
+#include <ConfigurationDialog.h>
 
 // Qt
 #include <QFileDialog>
@@ -107,6 +108,7 @@ void SimpleHasher::connectSignals()
   connect(m_removeFile, SIGNAL(pressed()), this, SLOT(onRemoveFilePressed()));
   connect(m_compute,    SIGNAL(pressed()), this, SLOT(onComputePressed()));
   connect(m_save,       SIGNAL(pressed()), this, SLOT(onSavePressed()));
+  connect(m_options,    SIGNAL(pressed()), this, SLOT(onOptionsPressed()));
 
   connect(m_md5,    SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxStateChanged()));
   connect(m_sha1,   SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxStateChanged()));
@@ -286,8 +288,8 @@ void SimpleHasher::onCheckBoxStateChanged()
         auto hash = m_results[m_files.at(row)][labels.at(column)];
         text = hash->value();
 
+        if(m_oneline)   text = text.replace('\n', ' ');
         if(!m_spaces)   text = text.remove(' ');
-        if(m_oneline)   text = text.remove('\n');
         if(m_uppercase) text = text.toUpper();
       }
 
@@ -396,8 +398,8 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
   auto widget = qobject_cast<QLabel *>(m_hashTable->cellWidget(row, column));
 
   auto text = hash->value();
+  if(m_oneline)   text = text.replace('\n', ' ');
   if(!m_spaces)   text = text.remove(' ');
-  if(m_oneline)   text = text.remove('\n');
   if(m_uppercase) text = text.toUpper();
 
   widget->setText(text);
@@ -432,6 +434,21 @@ void SimpleHasher::onContextMenuActivated(const QPoint &pos)
   if(!m_hashTable->isEnabled()) return;
 
   m_menu->popup(m_hashTable->mapToGlobal(pos));
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::onOptionsPressed()
+{
+  ConfigurationDialog dialog{m_spaces, m_oneline, m_uppercase, centralWidget()};
+
+  if(dialog.exec() == QDialog::Accepted && dialog.isModified())
+  {
+    m_spaces    = dialog.useSpacesChecked();
+    m_oneline   = dialog.splitHashesChecked();
+    m_uppercase = dialog.uppercaseChecked();
+
+    onCheckBoxStateChanged();
+  }
 }
 
 //----------------------------------------------------------------

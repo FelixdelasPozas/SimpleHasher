@@ -53,6 +53,7 @@ qt5_wrap_ui(CORE_UI
   # .ui for Qt
   AboutDialog.ui
   SimpleHasher.ui
+  ConfigurationDialog.ui
 )
 	
 set (CORE_SOURCES
@@ -66,6 +67,7 @@ set (CORE_SOURCES
   ComputerThread.cpp
   Hash.cpp
   SimpleHasher.cpp
+  ConfigurationDialog.cpp
   hash/MD5.cpp
   hash/SHA1.cpp
   hash/SHA224.cpp

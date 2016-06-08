@@ -6,5 +6,6 @@
 	<file>cancel.svg</file>
 	<file>information.svg</file>
 	<file>clipboard.svg</file>
+	<file>config.svg</file>
   </qresource>
 </RCC>

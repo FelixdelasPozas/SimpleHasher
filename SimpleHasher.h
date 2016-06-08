@@ -55,6 +55,7 @@ class SimpleHasher
     void onHashComputed(const QString &file, const Hash *hash);
     void copyHashesToClipboard();
     void onContextMenuActivated(const QPoint &pos);
+    void onOptionsPressed();
 
   private:
     static QString STATE_MD5;
