@@ -236,7 +236,74 @@ void SimpleHasher::onCancelPressed()
 //----------------------------------------------------------------
 void SimpleHasher::onSavePressed()
 {
-  // TODO
+  static QString dir = QDir::currentPath();
+
+  auto selectedDir = QFileDialog::getExistingDirectory(centralWidget(), tr("Select directory for output files"), dir);
+
+  if(!selectedDir.isEmpty())
+  {
+    // set the value of dir first
+    dir = selectedDir;
+
+    QDir outputdir{selectedDir};
+    QStringList notSaved;
+
+    for(int index = 1; index < m_headers.size(); ++index)
+    {
+      if(!m_results[m_files[0]].keys().contains(m_headers.at(index)))
+      {
+        notSaved << m_headers.at(index);
+        continue;
+      }
+
+      auto hash     = m_headers.at(index);
+      auto filename = hash.remove('-').toUpper() + tr("SUMS");
+      auto filepath = outputdir.absoluteFilePath(filename);
+
+      QFile file{filepath};
+
+      if(!file.open(QIODevice::WriteOnly|QIODevice::Truncate))
+      {
+        QMessageBox dialog(centralWidget());
+        dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+        dialog.setWindowTitle(tr("Error saving hashes"));
+        dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+        dialog.setDetailedText(tr("Error: ") + file.errorString());
+        dialog.setIcon(QMessageBox::Icon::Information);
+
+        dialog.exec();
+        return;
+      }
+
+      QByteArray data;
+
+      for(int i = 0; i < m_files.size(); ++i)
+      {
+        auto hashText = m_results[m_files.at(i)][m_headers.at(index)]->value();
+        auto name     = m_files.at(i).split(QChar('/')).last();
+        data.append(hashText.remove('\n').remove(' ').toLower());
+        data.append(tr(" *%1%2").arg(name).arg((i == m_files.size()-1 ? "" : "\n")));
+      }
+
+      file.write(data);
+      if(!file.flush())
+      {
+        QMessageBox dialog(centralWidget());
+        dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+        dialog.setWindowTitle(tr("Error saving hashes"));
+        dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+        dialog.setDetailedText(tr("Error: ") + file.errorString());
+        dialog.setIcon(QMessageBox::Icon::Information);
+
+        dialog.exec();
+
+        QFile::remove(filepath);
+        return;
+      }
+
+      file.close();
+    }
+  }
 }
 
 //----------------------------------------------------------------
@@ -335,6 +402,9 @@ void SimpleHasher::onComputationFinished()
   {
     m_hashTable->resizeColumnToContents(i);
   }
+
+  m_save->setEnabled(true);
+
   hideProgress();
 }
 
@@ -441,16 +511,16 @@ void SimpleHasher::copyHashesToClipboard()
         text += tr("\n");
       }
 
+      auto label = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), index.column()));
+      text += label->text().remove('\n').remove(' ').toLower();
+
       auto name  = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), 0));
       auto filename = name->text().remove("<b>").remove("</b>");
-      text += tr("%1 (%2) - ").arg(filename).arg(m_headers.at(index.column()));
-      auto label = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), index.column()));
-      text += label->text().replace('\n', ' ');
+      text += tr(" *%1 (%2)").arg(filename).arg(m_headers.at(index.column()));
     }
 
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->clear();
-
     clipboard->setText(text);
   }
 }
