@@ -7,5 +7,6 @@
 	<file>information.svg</file>
 	<file>clipboard.svg</file>
 	<file>config.svg</file>
+	<file>exit.svg</file>
   </qresource>
 </RCC>

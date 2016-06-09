@@ -27,7 +27,7 @@
 #include <QObject>
 
 /** \class MD5
- * \brief Implements the Message Digest Algorithm 5 of 160 bits.
+ * \brief Implements the Message Digest Algorithm 5 of 128 bits.
  *
  */
 class MD5

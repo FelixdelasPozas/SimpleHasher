@@ -54,6 +54,7 @@ qt5_wrap_ui(CORE_UI
   AboutDialog.ui
   SimpleHasher.ui
   ConfigurationDialog.ui
+  CheckerDialog.ui
 )
 	
 set (CORE_SOURCES
@@ -68,6 +69,7 @@ set (CORE_SOURCES
   Hash.cpp
   SimpleHasher.cpp
   ConfigurationDialog.cpp
+  CheckerDialog.cpp
   hash/MD5.cpp
   hash/SHA1.cpp
   hash/SHA224.cpp
