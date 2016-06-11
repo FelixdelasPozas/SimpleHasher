@@ -72,7 +72,33 @@ class ConfigurationDialog
      */
     bool isModified() const;
 
+  private slots:
+    /** \brief Installs or removes the 'Send To' link in the system.
+     *
+     */
+    void onSendToButtonPressed();
+
   private:
+    /** \brief Updates the 'Send To' UI.
+     *
+     */
+    void updateSentToUI();
+
+    /** \brief Returns true if the "Send To" shortcut is present.
+     *
+     */
+    bool isSendToPresent() const;
+
+    /** \brief Installs the "Send To" shortcut in the system.
+     *
+     */
+    void installSendTo();
+
+    /** \brief Removes the "Send To" shortcut from the system.
+     *
+     */
+    void removeSendTo();
+
     bool m_useSpaces; /** initial value for 'use spaces' checkbox.   */
     bool m_splitHash; /** initial value for 'split hashes' checkbox. */
     bool m_uppercase; /** initial value for 'uppercase' checkbox.    */
