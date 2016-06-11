@@ -213,52 +213,6 @@ QGroupBox::title {
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QPushButton" name="m_quit">
-        <property name="toolTip">
-         <string>Quit the application</string>
-        </property>
-        <property name="statusTip">
-         <string>Quit the application</string>
-        </property>
-        <property name="text">
-         <string>Quit</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="m_about">
-        <property name="toolTip">
-         <string>About Simple Hasher</string>
-        </property>
-        <property name="statusTip">
-         <string>About Simple Hasher</string>
-        </property>
-        <property name="text">
-         <string>About...</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="m_options">
-        <property name="text">
-         <string>Options...</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
        <widget class="QPushButton" name="m_addFile">
         <property name="toolTip">
          <string>Add files to the list to hashed</string>
@@ -316,6 +270,52 @@ QGroupBox::title {
         </property>
         <property name="text">
          <string>Save</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="m_options">
+        <property name="text">
+         <string>Options...</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="m_about">
+        <property name="toolTip">
+         <string>About Simple Hasher</string>
+        </property>
+        <property name="statusTip">
+         <string>About Simple Hasher</string>
+        </property>
+        <property name="text">
+         <string>About...</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="m_quit">
+        <property name="toolTip">
+         <string>Quit the application</string>
+        </property>
+        <property name="statusTip">
+         <string>Quit the application</string>
+        </property>
+        <property name="text">
+         <string>Quit</string>
         </property>
        </widget>
       </item>

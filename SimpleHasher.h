@@ -39,7 +39,7 @@ class SimpleHasher
 {
     Q_OBJECT
   public:
-    SimpleHasher(QWidget *parent = nullptr, Qt::WindowFlags flags = 0);
+    SimpleHasher(const QStringList &files, QWidget *parent = nullptr, Qt::WindowFlags flags = 0);
 
     virtual ~SimpleHasher();
 
@@ -58,6 +58,8 @@ class SimpleHasher
     void onOptionsPressed();
 
   private:
+    enum class Mode: char { GENERATE = 0, CHECK };
+
     static QString STATE_MD5;
     static QString STATE_SHA1;
     static QString STATE_SHA224;
@@ -76,9 +78,12 @@ class SimpleHasher
     void connectSignals();
     void hideProgress();
     void showProgress();
+    void loadInformation();
+    const QString guessHash(QFile &file);
 
     void addFilesToTable(const QStringList &files);
 
+    Mode                                   m_mode;      /** operation mode.                                                 */
     QStringList                            m_files;     /** files in the table.                                             */
     std::shared_ptr<ComputerThread>        m_thread;    /** computer thread.                                                */
     bool                                   m_spaces;    /** true to divide the hashes with spaces.                          */

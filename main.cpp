@@ -41,11 +41,20 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 //-----------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  QStringList files;
+  if(argc != 1)
+  {
+    for(int i = 1; i < argc; ++i)
+    {
+      files << QString(argv[i]);
+    }
+  }
+
   qInstallMessageHandler(myMessageOutput);
 
 	QApplication app(argc, argv);
 
-	SimpleHasher hasher;
+	SimpleHasher hasher{files};
 	hasher.show();
 
 	return app.exec();

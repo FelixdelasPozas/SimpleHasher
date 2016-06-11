@@ -39,6 +39,7 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QClipboard>
+#include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -53,13 +54,18 @@ QString SimpleHasher::OPTIONS_UPPERCASE = QString("Hash in uppercase");
 QString SimpleHasher::OPTIONS_SPACES    = QString("Break hash with spaces");
 
 //----------------------------------------------------------------
-SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
+SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::WindowFlags flags)
 : QMainWindow{parent, flags}
+, m_mode     {files.isEmpty() ? Mode::GENERATE : Mode::CHECK}
+, m_files    {files}
 , m_thread   {nullptr}
 , m_spaces   {true}
 , m_oneline  {false}
 , m_uppercase{false}
 {
+  qRegisterMetaType<const Hash *>("Hash");
+  qRegisterMetaType<QVector<int>>("Point");
+
   setupUi(this);
 
   QStringList labels = { tr("Filename") };
@@ -67,6 +73,7 @@ SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
   m_hashTable->setColumnCount(1);
   m_hashTable->setAlternatingRowColors(true);
   m_hashTable->setSortingEnabled(false);
+  m_hashTable->setEditTriggers(QTableWidget::NoEditTriggers);
   m_hashTable->setHorizontalHeaderLabels(labels);
   m_hashTable->setHorizontalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAsNeeded);
   m_hashTable->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAsNeeded);
@@ -84,6 +91,18 @@ SimpleHasher::SimpleHasher(QWidget *parent, Qt::WindowFlags flags)
   createContextMenu();
 
   connectSignals();
+
+  if(m_mode == Mode::CHECK)
+  {
+    m_addFile->hide();
+    m_removeFile->hide();
+    m_compute->hide();
+    m_save->hide();
+    m_hashGroup->hide();
+    m_options->hide();
+
+    loadInformation();
+  }
 }
 
 //----------------------------------------------------------------
@@ -177,7 +196,6 @@ void SimpleHasher::onRemoveFilePressed()
 
   auto compare = [](int a, int b) { return a > b; };
   std::sort(selectedRows.begin(), selectedRows.end(), compare);
-
 
   while(!selectedRows.empty())
   {
@@ -319,7 +337,7 @@ void SimpleHasher::onCheckBoxStateChanged()
   if(m_sha512->isChecked()) labels << tr("SHA-512");
   if(m_tiger->isChecked())  labels << tr("Tiger");
 
-  if(labels.size() == 1)
+  if(labels.size() == 1 && m_mode != Mode::CHECK)
   {
     auto checkbox = qobject_cast<QCheckBox *>(sender());
     checkbox->setChecked(true);
@@ -349,7 +367,7 @@ void SimpleHasher::onCheckBoxStateChanged()
   {
     for(int column = 1; column < labels.size(); ++column)
     {
-      QString text{"Not Computed"};
+      QString text = (m_mode == Mode::GENERATE) ? "Not Computed" : "Hash not present";
 
       if(m_results[m_files.at(row)].contains(labels.at(column)))
       {
@@ -361,12 +379,11 @@ void SimpleHasher::onCheckBoxStateChanged()
         if(m_uppercase) text = text.toUpper();
       }
 
-      auto widget = new QLabel{text};
-      widget->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-      widget->setAlignment(Qt::AlignCenter);
-      widget->setContentsMargins(2, 2, 2, 2);
+      auto item = new QTableWidgetItem{text};
+      item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+      item->setTextAlignment(Qt::AlignCenter);
 
-      m_hashTable->setCellWidget(row, column, widget);
+      m_hashTable->setItem(row, column, item);
     }
   }
 
@@ -382,28 +399,31 @@ void SimpleHasher::onComputationFinished()
   disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
   disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
 
-  auto results = m_thread->getResults();
-
-  for(int i = 0; i < m_files.size(); ++i)
+  if(m_mode == Mode::GENERATE)
   {
-    for(auto hash: results[m_files.at(i)])
+    auto results = m_thread->getResults();
+
+    for(int i = 0; i < m_files.size(); ++i)
     {
-      m_results[m_files.at(i)][hash->name()] = hash;
+      for(auto hash: results[m_files.at(i)])
+      {
+        m_results[m_files.at(i)][hash->name()] = hash;
+      }
     }
-  }
 
-  for(auto list: results.values())
-  {
-    list.clear();
-  }
+    for(auto list: results.values())
+    {
+      list.clear();
+    }
 
-  m_thread = nullptr;
-  for(int i = 0; i < m_hashTable->columnCount(); ++i)
-  {
-    m_hashTable->resizeColumnToContents(i);
-  }
+    m_thread = nullptr;
+    for(int i = 0; i < m_hashTable->columnCount(); ++i)
+    {
+      m_hashTable->resizeColumnToContents(i);
+    }
 
-  m_save->setEnabled(true);
+    m_save->setEnabled(true);
+  }
 
   hideProgress();
 }
@@ -440,42 +460,94 @@ void SimpleHasher::loadSettings()
 void SimpleHasher::saveSettings()
 {
   QSettings settings{"SimpleHasher.ini", QSettings::IniFormat};
-
   settings.setValue(GEOMETRY, saveGeometry());
 
-  settings.beginGroup("HashAlgorithms");
-  settings.setValue(STATE_MD5,    m_md5->isChecked());
-  settings.setValue(STATE_SHA1,   m_sha1->isChecked());
-  settings.setValue(STATE_SHA224, m_sha224->isChecked());
-  settings.setValue(STATE_SHA256, m_sha256->isChecked());
-  settings.setValue(STATE_SHA384, m_sha384->isChecked());
-  settings.setValue(STATE_SHA512, m_sha512->isChecked());
-  settings.setValue(STATE_TIGER,  m_tiger->isChecked());
-  settings.endGroup();
+  if(m_mode == Mode::GENERATE)
+  {
+    settings.beginGroup("HashAlgorithms");
+    settings.setValue(STATE_MD5,    m_md5->isChecked());
+    settings.setValue(STATE_SHA1,   m_sha1->isChecked());
+    settings.setValue(STATE_SHA224, m_sha224->isChecked());
+    settings.setValue(STATE_SHA256, m_sha256->isChecked());
+    settings.setValue(STATE_SHA384, m_sha384->isChecked());
+    settings.setValue(STATE_SHA512, m_sha512->isChecked());
+    settings.setValue(STATE_TIGER,  m_tiger->isChecked());
+    settings.endGroup();
 
-  settings.beginGroup("Options");
-  settings.setValue(OPTIONS_ONELINE,   m_oneline);
-  settings.setValue(OPTIONS_SPACES,    m_spaces);
-  settings.setValue(OPTIONS_UPPERCASE, m_uppercase);
-  settings.endGroup();
+    settings.beginGroup("Options");
+    settings.setValue(OPTIONS_ONELINE,   m_oneline);
+    settings.setValue(OPTIONS_SPACES,    m_spaces);
+    settings.setValue(OPTIONS_UPPERCASE, m_uppercase);
+    settings.endGroup();
+  }
 }
 
 //----------------------------------------------------------------
 void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
 {
-  auto row = m_files.indexOf(file);
-  auto column = m_headers.indexOf(hash->name());
+  auto row      = m_files.indexOf(file);
+  auto column   = m_headers.indexOf(hash->name());
+  auto item     = m_hashTable->item(row, column);
+  auto text     = hash->value();
 
-  auto widget = qobject_cast<QLabel *>(m_hashTable->cellWidget(row, column));
+  if(m_mode == Mode::GENERATE)
+  {
+    if(m_oneline)   text = text.replace('\n', ' ');
+    if(!m_spaces)   text = text.remove(' ');
+    if(m_uppercase) text = text.toUpper();
 
-  auto text = hash->value();
-  if(m_oneline)   text = text.replace('\n', ' ');
-  if(!m_spaces)   text = text.remove(' ');
-  if(m_uppercase) text = text.toUpper();
+    item->setText(text);
 
-  widget->setText(text);
+    m_hashTable->resizeColumnToContents(column);
+  }
+  else
+  {
+    auto fileItem = m_hashTable->item(row, 0);
+    auto value = hash->value();
+    value = value.remove('\n').remove(' ').toLower();
+    bool setIcon = true;
+    bool success = true;
 
-  m_hashTable->resizeColumnToContents(column);
+    if(item->text().toLower() == value)
+    {
+      item->setBackgroundColor(QColor(50,200,50));
+      item->setToolTip(tr("Correct Hash."));
+    }
+    else
+    {
+      item->setBackgroundColor(QColor(200, 50, 50));
+      item->setToolTip(tr("Incorrect Hash."));
+    }
+
+    for(int i = 1; i < m_hashTable->columnCount(); ++i)
+    {
+      auto tableItem = m_hashTable->item(row, i);
+
+      if(tableItem->text() == "Hash not present") continue;
+
+      if(tableItem->backgroundColor() == QColor())
+      {
+        setIcon = false;
+        break;
+      }
+
+      success &= (tableItem->backgroundColor() == QColor(50,200,50));
+    }
+
+    if(setIcon)
+    {
+      if(success)
+      {
+        fileItem->setIcon(QIcon(":/SimpleHasher/good.svg"));
+        fileItem->setToolTip(tr("All hashes match."));
+      }
+      else
+      {
+        fileItem->setIcon(QIcon(":/SimpleHasher/bad.svg"));
+        fileItem->setToolTip(tr("The hashes don't match."));
+      }
+    }
+  }
 
   QApplication::processEvents();
 }
@@ -511,11 +583,11 @@ void SimpleHasher::copyHashesToClipboard()
         text += tr("\n");
       }
 
-      auto label = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), index.column()));
-      text += label->text().remove('\n').remove(' ').toLower();
+      auto hashItem = m_hashTable->item(index.row(), index.column());
+      text += hashItem->text().remove('\n').remove(' ').toLower();
 
-      auto name  = qobject_cast<QLabel *>(m_hashTable->cellWidget(index.row(), 0));
-      auto filename = name->text().remove("<b>").remove("</b>");
+      auto nameItem = m_hashTable->item(index.row(), 0);
+      auto filename = nameItem->text().remove("<b>").remove("</b>");
       text += tr(" *%1 (%2)").arg(filename).arg(m_headers.at(index.column()));
     }
 
@@ -531,6 +603,215 @@ void SimpleHasher::onContextMenuActivated(const QPoint &pos)
   if(!m_hashTable->isEnabled()) return;
 
   m_menu->popup(m_hashTable->mapToGlobal(pos));
+}
+
+//----------------------------------------------------------------
+const QString SimpleHasher::guessHash(QFile &file)
+{
+  QString result{"Unknown"};
+
+  file.seek(0);
+  auto data = file.read(150); // a bit more than the largest of the hashes (512 bits/8 char bits = 64).
+
+  QRegExp reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
+
+  if(reg.indexIn(data) != -1)
+  {
+    auto hash = reg.cap();
+
+    switch(hash.length())
+    {
+      case 32 : return "MD5";
+      case 40 : return "SHA-1";
+      case 56 : return "SHA-224";
+      case 64 : return "SHA-256";
+      case 96 : return "SHA-384";
+      case 128: return "SHA-512";
+      case 48 : return "Tiger";
+      default:
+        break;
+    }
+  }
+
+  return result;
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::loadInformation()
+{
+  QStringList hashes;
+  QString fileErrors;
+
+  auto parameterFiles = m_files;
+  parameterFiles.detach();
+  m_files.clear();
+
+  this->blockSignals(true);
+  QList<QCheckBox *> checked;
+  for(auto check: {m_md5, m_sha1, m_sha224, m_sha256, m_sha256, m_sha384, m_sha512, m_tiger})
+  {
+    if(check->isChecked()) checked << check;
+    check->setChecked(false);
+  }
+  this->blockSignals(false);
+
+  QList<int> parameterHashLengths;
+  QStringList hashNameList;
+
+  for(auto filename: parameterFiles)
+  {
+    QFile file{filename};
+
+    if(!file.exists() || !file.open(QIODevice::ReadOnly))
+    {
+      fileErrors += tr("%1 error: %2\n").arg(filename).arg(file.errorString());
+      continue;
+    }
+
+    auto path = QFileInfo{filename}.absoluteDir();
+    auto hash = guessHash(file);
+
+    if(hash == "Unknown")
+    {
+      fileErrors += tr("%1 error: %2\n").arg(filename).arg("Unknown hash");
+      file.close();
+      continue;
+    }
+
+    if (hash == "MD5")
+    {
+      m_md5->setChecked(true);
+      parameterHashLengths << 32;
+    }
+    else
+      if (hash == "SHA-1")
+      {
+        m_sha1->setChecked(true);
+        parameterHashLengths << 40;
+      }
+      else
+        if (hash == "SHA-224")
+        {
+          m_sha224->setChecked(true);
+          parameterHashLengths << 56;
+        }
+        else
+          if (hash == "SHA-256")
+          {
+            m_sha256->setChecked(true);
+            parameterHashLengths << 64;
+          }
+          else
+            if (hash == "SHA-384")
+            {
+              m_sha384->setChecked(true);
+              parameterHashLengths << 96;
+            }
+            else
+              if (hash == "SHA-512")
+              {
+                m_sha512->setChecked(true);
+                parameterHashLengths << 128;
+              }
+              else
+                if (hash == "Tiger")
+                {
+                  m_tiger->setChecked(true);
+                  parameterHashLengths << 48;
+                }
+                else
+                  Q_ASSERT(false);
+
+    hashNameList << hash;
+  }
+
+  onCheckBoxStateChanged();
+
+  for(auto filename: parameterFiles)
+  {
+    QFile file{filename};
+    auto path = QFileInfo{filename}.absoluteDir();
+
+    if(!file.exists() || !file.open(QIODevice::ReadOnly))
+    {
+      // reported before.
+      continue;
+    }
+
+    QStringList files;
+    int begin = 0;
+    auto data = file.readAll();
+    while(data.indexOf('*', begin) != -1)
+    {
+      begin = data.indexOf('*', begin) + 1;
+      auto end = data.indexOf('\n', begin);
+      if(end == -1) end = data.length();
+
+      files << path.absoluteFilePath(data.mid(begin, end-begin));
+      begin = end;
+    }
+
+    addFilesToTable(files);
+
+    QRegExp hashexp{"(([a-h]*)([A-H]*)([0-9]*))*"};
+    hashexp.setMinimal(false);
+
+    begin = 0;
+    int i = 0;
+    while(begin != -1)
+    {
+      auto hashText = data.mid(begin, parameterHashLengths.at(parameterFiles.indexOf(filename)));
+      auto index = hashexp.indexIn(hashText);
+
+      if(index != -1)
+      {
+        auto hashText = hashexp.cap();
+        auto column = m_headers.indexOf(hashNameList.at(parameterFiles.indexOf(filename)));
+        auto row    = m_files.indexOf(files.at(i));
+
+        auto item = m_hashTable->item(row, column);
+        item->setText(hashText);
+        ++i;
+      }
+      begin = data.indexOf('\n', begin);
+      if(begin != -1) ++begin;
+    }
+  }
+
+  if(!fileErrors.isEmpty())
+  {
+    QMessageBox dialog(centralWidget());
+    dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+    dialog.setWindowTitle(tr("Can't open files"));
+    dialog.setText(tr("Some files couldn't be loaded."));
+    dialog.setDetailedText(fileErrors);
+    dialog.setIcon(QMessageBox::Icon::Information);
+
+    dialog.exec();
+  }
+
+  if(m_files.isEmpty())
+  {
+    m_addFile->show();
+    m_removeFile->show();
+    m_compute->show();
+    m_save->show();
+    m_hashGroup->show();
+    m_options->show();
+
+    for(auto check: checked)
+    {
+      check->setChecked(true);
+    }
+
+    m_mode = Mode::GENERATE;
+  }
+  else
+  {
+    onComputePressed();
+  }
+
+  m_hashTable->resizeColumnsToContents();
 }
 
 //----------------------------------------------------------------
@@ -571,19 +852,23 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
 
     m_files << file;
 
-    auto row = m_hashTable->rowCount();
+    auto row      = m_hashTable->rowCount();
     auto filename = file.split(QChar('/')).last();
+    auto item     = new QTableWidgetItem(filename);
+
+    // convoluted way of doing things, but item->font().setBold(true) doesn't work...
+    item->setFont(QFont{item->font().key(), item->font().pointSize(), QFont::Bold});
 
     m_hashTable->insertRow(row);
-    m_hashTable->setCellWidget(row, 0, new QLabel{tr("<b>%1</b>").arg(filename)});
+    m_hashTable->setItem(row, 0, item);
 
     for(int column = 1; column <= columnCount; ++column)
     {
-      auto widget = new QLabel{"Not computed"};
-      widget->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-      widget->setAlignment(Qt::AlignCenter);
+      auto item = new QTableWidgetItem("Not computed");
+      item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+      item->setTextAlignment(Qt::AlignCenter);
 
-      m_hashTable->setCellWidget(row, column, widget);
+      m_hashTable->setItem(row, column, item);
     }
   }
 

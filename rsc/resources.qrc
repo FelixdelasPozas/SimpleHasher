@@ -8,5 +8,7 @@
 	<file>clipboard.svg</file>
 	<file>config.svg</file>
 	<file>exit.svg</file>
+	<file>good.svg</file>
+	<file>bad.svg</file>
   </qresource>
 </RCC>
