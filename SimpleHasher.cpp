@@ -338,7 +338,7 @@ void SimpleHasher::onSavePressed()
         auto hashText = m_results[m_files.at(i)][m_headers.at(index)]->value();
         auto name     = m_files.at(i).split(QChar('/')).last();
         data.append(hashText.remove('\n').remove(' ').toLower());
-        data.append(tr(" *%1%2").arg(name).arg((i == m_files.size()-1 ? "" : "\n")));
+        data.append(tr(" *%1\n").arg(name));
       }
 
       file.write(data);
@@ -732,7 +732,6 @@ void SimpleHasher::loadInformation()
     if(check->isChecked()) checked << check;
     check->setChecked(false);
   }
-  this->blockSignals(false);
 
   QList<int> parameterHashLengths;
   QStringList hashNameList;
@@ -804,6 +803,8 @@ void SimpleHasher::loadInformation()
     hashNameList << hash;
   }
 
+  this->blockSignals(false);
+
   onCheckBoxStateChanged();
 
   for(auto filename: parameterFiles)
@@ -837,12 +838,13 @@ void SimpleHasher::loadInformation()
 
     begin = 0;
     int i = 0;
+    auto length = parameterHashLengths.at(parameterFiles.indexOf(filename));
     while(begin != -1)
     {
-      auto hashText = data.mid(begin, parameterHashLengths.at(parameterFiles.indexOf(filename)));
+      auto hashText = data.mid(begin, length);
       auto index = hashexp.indexIn(hashText);
 
-      if(index != -1)
+      if(index != -1 && (hashText.length() == length))
       {
         auto hashText = hashexp.cap();
         auto column = m_headers.indexOf(hashNameList.at(parameterFiles.indexOf(filename)));
