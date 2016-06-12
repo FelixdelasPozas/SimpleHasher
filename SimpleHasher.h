@@ -110,6 +110,11 @@ class SimpleHasher
      */
     void copyHashesToClipboard();
 
+    /** \brief Saves the values of the selected hashes to disk.
+     *
+     */
+    void saveSelectedHashes();
+
     /** \brief Shows the context menu if activated over a hash cell.
      *
      */

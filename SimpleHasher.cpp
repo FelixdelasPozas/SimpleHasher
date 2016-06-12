@@ -296,7 +296,7 @@ void SimpleHasher::onSavePressed()
 
   if(selectedDir.isEmpty()) return;
 
-    // set the value of dir first
+  // set the value of dir first
   dir = selectedDir;
 
   QDir outputdir{selectedDir};
@@ -363,11 +363,20 @@ void SimpleHasher::onSavePressed()
   QMessageBox dialog(centralWidget());
   dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
   dialog.setWindowTitle(tr("Save hashes to disk"));
-  dialog.setText(tr("Created %1 hash files in directory '%2'.").arg(hashFilenames.size()).arg(selectedDir));
+
+  auto text = tr("Created %1 hash files in directory '%2'.").arg(hashFilenames.size()).arg(selectedDir);
+  if(!notSaved.isEmpty())
+  {
+    auto firstPlural = notSaved.size() > 1 ? "es weren't" : " wasn't";
+    auto secondPlural = notSaved.size() > 1 ? "they haven't" : "it hasn't";
+    text += tr("\n%1 hash%2 saved because %3 been computed yet.").arg(notSaved.size()).arg(firstPlural).arg(secondPlural);
+  }
+
+  dialog.setText(text);
   QString details;
   for(auto name: hashFilenames)
   {
-    details += tr("%1%2").arg(name).arg(name == hashFilenames.last() ? "" : "\n");
+    details += tr("File: %1%2").arg(name).arg(name == hashFilenames.last() ? "" : "\n");
   }
   dialog.setDetailedText(details);
   dialog.setIcon(QMessageBox::Icon::Information);
@@ -640,9 +649,14 @@ void SimpleHasher::createContextMenu()
   auto copy = new QAction{QIcon{":/SimpleHasher/clipboard.svg"}, tr("Copy hashes to clipboard"), m_menu.get()};
   m_menu->addAction(copy);
 
+  auto save = new QAction{QIcon{":/SimpleHasher/save.svg"}, tr("Saves hashes to disk"), m_menu.get()};
+  m_menu->addAction(save);
+
   connect(copy, SIGNAL(triggered()), this, SLOT(copyHashesToClipboard()));
+  connect(save, SIGNAL(triggered()), this, SLOT(saveSelectedHashes()));
 
   m_hashTable->setContextMenuPolicy(Qt::CustomContextMenu);
+
   connect(m_hashTable, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(onContextMenuActivated(const QPoint &)));
 }
 
@@ -654,7 +668,7 @@ void SimpleHasher::copyHashesToClipboard()
   if(!selectedIndexes.isEmpty())
   {
     QString text;
-    QList<int> indexes;
+
     for(auto index: selectedIndexes)
     {
       if(index.column() == 0) return;
@@ -676,6 +690,118 @@ void SimpleHasher::copyHashesToClipboard()
     clipboard->clear();
     clipboard->setText(text);
   }
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::saveSelectedHashes()
+{
+  static QString dir = QDir::currentPath();
+
+  auto selectedDir = QFileDialog::getExistingDirectory(centralWidget(), tr("Select directory for output files"), dir);
+
+  if(selectedDir.isEmpty()) return;
+
+  QStringList hashFilenames;
+  QDir outputDir{selectedDir};
+  int notSaved;
+
+  auto selectedIndexes = m_hashTable->selectionModel()->selectedIndexes();
+
+  QMap<int, QList<int>> indexes;
+  if(!selectedIndexes.isEmpty())
+  {
+    for(auto index: selectedIndexes)
+    {
+      if(index.column() == 0) continue;
+
+      indexes[index.column()] << index.row();
+    }
+  }
+
+  for(auto column: indexes.keys())
+  {
+    auto hash = m_headers.at(column);
+    auto filename = hash.remove('-').toUpper() + tr("SUMS.txt");
+    auto filepath = outputDir.absoluteFilePath(filename);
+
+    QByteArray data;
+
+    for (auto row: indexes[column])
+    {
+      if(!m_results[m_files.at(row)].contains(m_headers.at(column)))
+      {
+        ++notSaved;
+        continue;
+      }
+      auto hashText = m_results[m_files.at(row)][m_headers.at(column)]->value();
+      auto name = m_files.at(row).split(QChar('/')).last();
+      data.append(hashText.remove('\n').remove(' ').toLower());
+      data.append(tr(" *%1\n").arg(name));
+    }
+
+    if(notSaved == indexes[column].size())
+    {
+      continue;
+    }
+
+    hashFilenames << filename;
+
+    QFile file{filepath};
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    {
+      QMessageBox dialog(centralWidget());
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Error saving hashes"));
+      dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+      dialog.setDetailedText(tr("Error: ") + file.errorString());
+      dialog.setIcon(QMessageBox::Icon::Warning);
+
+      dialog.exec();
+      return;
+    }
+
+    file.write(data);
+    if (!file.flush())
+    {
+      QMessageBox dialog(centralWidget());
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Error saving hashes"));
+      dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+      dialog.setDetailedText(tr("Error: ") + file.errorString());
+      dialog.setIcon(QMessageBox::Icon::Warning);
+
+      dialog.exec();
+
+      QFile::remove(filepath);
+      return;
+    }
+
+    file.close();
+  }
+
+  QMessageBox dialog(centralWidget());
+  dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+  dialog.setWindowTitle(tr("Save hashes to disk"));
+  auto text = tr("Created %1 hash files in directory '%2'.").arg(hashFilenames.size()).arg(selectedDir);
+  if(notSaved != 0)
+  {
+    auto firstPlural = notSaved > 1 ? "es weren't" : " wasn't";
+    auto secondPlural = notSaved > 1 ? "they haven't" : "it hasn't";
+    text += tr("\n%1 hash%2 saved because %3 been computed yet.").arg(notSaved).arg(firstPlural).arg(secondPlural);
+  }
+
+  dialog.setText(text);
+  QString details;
+  for(auto name: hashFilenames)
+  {
+    details += tr("File: %1%2").arg(name).arg(name == hashFilenames.last() ? "" : "\n");
+  }
+
+  dialog.setDetailedText(details);
+  dialog.setIcon(QMessageBox::Icon::Information);
+
+  dialog.exec();
 }
 
 //----------------------------------------------------------------

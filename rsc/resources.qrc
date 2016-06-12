@@ -11,5 +11,6 @@
 	<file>good.svg</file>
 	<file>bad.svg</file>
 	<file>warning.svg</file>
+	<file>save.svg</file>
   </qresource>
 </RCC>
