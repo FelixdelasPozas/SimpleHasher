@@ -23,16 +23,25 @@
 // Qt
 #include <QMessageBox>
 #include <QIcon>
+#include <QThreadPool>
+#include <QApplication>
 
 //----------------------------------------------------------------
 ComputerThread::ComputerThread(QMap<QString, HashList> computations, QObject *parent)
 : QThread       {parent}
 , m_computations{computations}
 , m_abort       {false}
-, m_currentIndex{0}
-, m_hashIndex   {0}
+, m_hashNumber  {0}
+, m_progress    {0}
+, m_maxThreads  {QThreadPool::globalInstance()->maxThreadCount()}
+, m_threadsNum  {0}
 {
   qRegisterMetaType<const Hash *>("constHashPtr");
+
+  for(auto file: m_computations.keys())
+  {
+    m_hashNumber += m_computations[file].size();
+  }
 }
 
 //----------------------------------------------------------------
@@ -48,45 +57,65 @@ void ComputerThread::abort()
 }
 
 //----------------------------------------------------------------
-void ComputerThread::hashProgress(int value)
+void ComputerThread::onHashComputed(const QString &filename, const Hash *hash)
 {
-  auto filesSize = m_computations.size();
-  auto hashSize  = m_computations[m_computations.keys().at(m_currentIndex)].size();
-  int fileProgress = (100 * m_currentIndex)/filesSize;
-  int hashProgress = (100 * m_hashIndex)/(filesSize * hashSize);
+  QMutexLocker lock(&m_progressMutex);
 
-  emit progress(fileProgress + hashProgress + value/(filesSize * hashSize));
+  emit hashComputed(filename, hash);
+
+  ++m_progress;
+
+  emit progress((100*m_progress)/m_hashNumber);
+
+  --m_threadsNum;
+  m_condition.wakeAll();
 }
 
 //----------------------------------------------------------------
 void ComputerThread::run()
 {
-  auto size = m_computations.keys().size();
   QString fileErrors;
+  QList<std::shared_ptr<HashChecker>> threads;
 
-  for(m_currentIndex = 0; m_currentIndex < size && !m_abort; ++m_currentIndex)
+  for(auto filename: m_computations.keys())
   {
-    auto filename = m_computations.keys().at(m_currentIndex);
-    QFile file{filename};
-
-    if(!file.open(QIODevice::ReadOnly) || !file.seek(0))
+    for(auto hash: m_computations[filename])
     {
-      fileErrors.append(tr("%1 error: %2\n").arg(filename).arg(file.errorString()));
-      continue;
-    }
+      auto file = new QFile{filename};
 
-    for(m_hashIndex = 0; m_hashIndex < m_computations[filename].size(); ++m_hashIndex)
-    {
-      auto hash = m_computations[filename].at(m_hashIndex);
+      if(!file->open(QIODevice::ReadOnly) || !file->seek(0))
+      {
+        fileErrors.append(tr("%1 error: %2\n").arg(filename).arg(file->errorString()));
+        delete file;
+        continue;
+      }
 
-      connect(hash.get(), SIGNAL(progress(int)), this, SLOT(hashProgress(int)), Qt::DirectConnection);
-      hash->update(file);
-      disconnect(hash.get(), SIGNAL(progress(int)), this, SLOT(hashProgress(int)));
-      file.seek(0);
+      auto runnable = std::make_shared<HashChecker>(hash, file);
+      connect(runnable.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
 
-      emit hashComputed(filename, hash.get());
+      threads << runnable;
+
+      // wait if we have reached the maximum number of threads of the system.
+      if(m_threadsNum == m_maxThreads)
+      {
+        m_mutex.lock();
+        m_condition.wait(&m_mutex);
+        m_mutex.unlock();
+      }
+
+      ++m_threadsNum;
+      runnable->start();
     }
   }
+
+  QApplication::processEvents();
+
+  for(auto thread: threads)
+  {
+    // waits for all threads to finish before ending.
+    thread->wait();
+  }
+  threads.clear();
 
   if(!fileErrors.isEmpty())
   {

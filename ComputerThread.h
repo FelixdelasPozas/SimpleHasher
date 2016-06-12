@@ -26,6 +26,11 @@
 // Qt
 #include <QThread>
 #include <QMap>
+#include <QMutex>
+#include <QWaitCondition>
+
+// C++
+#include <atomic>
 
 /** \class ComputerThread
  * \brief Class to compute the hashes in a separate thread.
@@ -68,20 +73,72 @@ class ComputerThread
   signals:
     void progress(int value);
 
-    void hashComputed(const QString &file, const Hash *hash);
+    void hashComputed(const QString &filename, const Hash *hash);
 
   private slots:
-    void hashProgress(int value);
+    void onHashComputed(const QString &filename, const Hash *hash);
 
   protected:
     virtual void run();
 
   private:
-    QMap<QString, HashList> m_computations; /** maps the files with the hashes to be computed.               */
-    bool                    m_abort;        /** set to true to stop computing and return ASAP.               */
-    int                     m_currentIndex; /** index of the file currently hashing.                         */
-    int                     m_hashIndex;    /** index of the hash currently computing.                       */
-
+    QMap<QString, HashList> m_computations;  /** maps the files with the hashes to be computed.               */
+    bool                    m_abort;         /** set to true to stop computing and return ASAP.               */
+    int                     m_hashNumber;    /** total number of hashes to compute.                           */
+    std::atomic<int>        m_progress;      /** progress accumulator.                                        */
+    QMutex                  m_progressMutex; /** protects the progress variable.                              */
+    QMutex                  m_mutex;         /** mutex for the wait condition.                                */
+    QWaitCondition          m_condition;     /** wait condition for the main thread.                          */
+    int                     m_maxThreads;    /** max number of threads in the system.                         */
+    std::atomic<int>        m_threadsNum;    /** number of threads currently running.                         */
 };
+
+/** \class HashChecker
+ * \brief Thread for computing an individual hash.
+ *
+ */
+class HashChecker
+: public QThread
+{
+    Q_OBJECT
+  public:
+    /** \brief HashChecker class constructor.
+     * \param[in] hash hash object to update.
+     * \param[in] file opened QFile object.
+     * \param[in] parent raw pointer of the object parent of this one.
+     *
+     */
+    HashChecker(std::shared_ptr<Hash> hash, QFile *file, QObject *parent = nullptr)
+    : QThread{parent}
+    , m_hash {hash}
+    , m_file {file}
+    {};
+
+    /** \brief HashChecker class virtual destructor.
+     *
+     */
+    ~HashChecker()
+    {
+      m_file->close();
+      delete m_file;
+    }
+
+  signals:
+    void hashComputed(const QString &filename, const Hash *hash);
+
+  protected:
+    void run()
+    {
+      m_hash->update(*m_file);
+
+      emit hashComputed(m_file->fileName(), m_hash.get());
+    }
+
+  private:
+    std::shared_ptr<Hash> m_hash; /** hash object to update. */
+    QFile                *m_file; /** opened QFile object.   */
+};
+
+
 
 #endif // COMPUTERTHREAD_H_

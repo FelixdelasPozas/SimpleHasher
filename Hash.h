@@ -75,7 +75,7 @@ class Hash
     virtual const QString name() const = 0;
 
   signals:
-    void progress(int value);
+    void finished();
 };
 
 #endif // HASH_H_

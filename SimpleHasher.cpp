@@ -39,7 +39,6 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QClipboard>
-#include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -52,6 +51,13 @@ QString SimpleHasher::GEOMETRY          = QString("Application Geometry");
 QString SimpleHasher::OPTIONS_ONELINE   = QString("Hash in one line");
 QString SimpleHasher::OPTIONS_UPPERCASE = QString("Hash in uppercase");
 QString SimpleHasher::OPTIONS_SPACES    = QString("Break hash with spaces");
+
+const QString NOT_FOUND            = QString("Not found");
+const QString NOT_FOUND_TOOLTIP    = QString("Hash is not in the files passed as argument.");
+const QString NOT_COMPUTED         = QString("Not computed");
+const QString NOT_COMPUTED_TOOLTIP = QString("Hash hasn't been computed.");
+const QString FILE_NOT_FOUND       = QString("File not found, can't compute or check hash.");
+const QString NOT_COMPUTED_YET     = QString("Hash not checked yet.");
 
 //----------------------------------------------------------------
 SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::WindowFlags flags)
@@ -183,7 +189,7 @@ void SimpleHasher::onRemoveFilePressed()
     dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
     dialog.setWindowTitle(tr("Can't remove files"));
     dialog.setText(tr("You must select at least one cell from the file to be removed."));
-    dialog.setIcon(QMessageBox::Icon::Information);
+    dialog.setIcon(QMessageBox::Icon::Warning);
 
     dialog.exec();
   }
@@ -212,24 +218,51 @@ void SimpleHasher::onComputePressed()
 
   QMap<QString, HashList> computations;
 
-  for(int i = 0; i < m_files.size(); ++i)
+  for (int row = 0; row < m_files.size(); ++row)
   {
     hashes.clear();
-    auto file = m_files.at(i);
+    auto file = m_files.at(row);
 
-    if(m_md5->isChecked()    && !m_results[file].keys().contains("MD5"))     hashes << std::make_shared<MD5>();
-    if(m_sha1->isChecked()   && !m_results[file].keys().contains("SHA-1"))   hashes << std::make_shared<SHA1>();
-    if(m_sha224->isChecked() && !m_results[file].keys().contains("SHA-224")) hashes << std::make_shared<SHA224>();
-    if(m_sha256->isChecked() && !m_results[file].keys().contains("SHA-256")) hashes << std::make_shared<SHA256>();
-    if(m_sha384->isChecked() && !m_results[file].keys().contains("SHA-384")) hashes << std::make_shared<SHA384>();
-    if(m_sha512->isChecked() && !m_results[file].keys().contains("SHA-512")) hashes << std::make_shared<SHA512>();
-    if(m_tiger->isChecked()  && !m_results[file].keys().contains("Tiger"))   hashes << std::make_shared<Tiger>();
+    if (m_md5->isChecked()    && !m_results[file].keys().contains("MD5"))     hashes << std::make_shared<MD5>();
+    if (m_sha1->isChecked()   && !m_results[file].keys().contains("SHA-1"))   hashes << std::make_shared<SHA1>();
+    if (m_sha224->isChecked() && !m_results[file].keys().contains("SHA-224")) hashes << std::make_shared<SHA224>();
+    if (m_sha256->isChecked() && !m_results[file].keys().contains("SHA-256")) hashes << std::make_shared<SHA256>();
+    if (m_sha384->isChecked() && !m_results[file].keys().contains("SHA-384")) hashes << std::make_shared<SHA384>();
+    if (m_sha512->isChecked() && !m_results[file].keys().contains("SHA-512")) hashes << std::make_shared<SHA512>();
+    if (m_tiger->isChecked()  && !m_results[file].keys().contains("Tiger"))   hashes << std::make_shared<Tiger>();
 
-    if(!hashes.empty())
+    if (!hashes.empty())
     {
-      computations.insert(file, hashes);
+      if(m_mode == Mode::CHECK)
+      {
+        HashList toRemove;
+
+        for(auto hash: hashes)
+        {
+          auto column = m_headers.indexOf(hash->name());
+          auto item   = m_hashTable->item(row, column);
+          if(item->text() == NOT_FOUND || (m_hashTable->item(row,0)->toolTip() == FILE_NOT_FOUND))
+          {
+            toRemove << hash;
+          }
+        }
+
+        if(!toRemove.isEmpty())
+        {
+          for(auto hash: toRemove)
+          {
+            hashes.removeOne(hash);
+          }
+        }
+      }
+
+      if(!hashes.isEmpty())
+      {
+        computations.insert(file, hashes);
+      }
     }
   }
+
 
   if(!computations.empty())
   {
@@ -255,6 +288,7 @@ void SimpleHasher::onCancelPressed()
 void SimpleHasher::onSavePressed()
 {
   static QString dir = QDir::currentPath();
+  QStringList hashFilenames;
 
   auto selectedDir = QFileDialog::getExistingDirectory(centralWidget(), tr("Select directory for output files"), dir);
 
@@ -275,8 +309,10 @@ void SimpleHasher::onSavePressed()
       }
 
       auto hash     = m_headers.at(index);
-      auto filename = hash.remove('-').toUpper() + tr("SUMS");
+      auto filename = hash.remove('-').toUpper() + tr("SUMS.txt");
       auto filepath = outputdir.absoluteFilePath(filename);
+
+      hashFilenames << filename;
 
       QFile file{filepath};
 
@@ -287,7 +323,7 @@ void SimpleHasher::onSavePressed()
         dialog.setWindowTitle(tr("Error saving hashes"));
         dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
         dialog.setDetailedText(tr("Error: ") + file.errorString());
-        dialog.setIcon(QMessageBox::Icon::Information);
+        dialog.setIcon(QMessageBox::Icon::Warning);
 
         dialog.exec();
         return;
@@ -311,7 +347,7 @@ void SimpleHasher::onSavePressed()
         dialog.setWindowTitle(tr("Error saving hashes"));
         dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
         dialog.setDetailedText(tr("Error: ") + file.errorString());
-        dialog.setIcon(QMessageBox::Icon::Information);
+        dialog.setIcon(QMessageBox::Icon::Warning);
 
         dialog.exec();
 
@@ -322,6 +358,20 @@ void SimpleHasher::onSavePressed()
       file.close();
     }
   }
+
+  QMessageBox dialog(centralWidget());
+  dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+  dialog.setWindowTitle(tr("Save hashes to disk"));
+  dialog.setText(tr("Created %1 hash files in directory '%2'.").arg(hashFilenames.size()).arg(selectedDir));
+  QString details;
+  for(auto name: hashFilenames)
+  {
+    details += tr("%1%2").arg(name).arg(name == hashFilenames.last() ? "" : "\n");
+  }
+  dialog.setDetailedText(details);
+  dialog.setIcon(QMessageBox::Icon::Information);
+
+  dialog.exec();
 }
 
 //----------------------------------------------------------------
@@ -340,17 +390,26 @@ void SimpleHasher::onCheckBoxStateChanged()
   if(labels.size() == 1 && m_mode != Mode::CHECK)
   {
     auto checkbox = qobject_cast<QCheckBox *>(sender());
-    checkbox->setChecked(true);
+    if(checkbox)
+    {
+      checkbox->setCheckState(Qt::Checked);
 
-    QMessageBox dialog(centralWidget());
-    dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
-    dialog.setWindowTitle(tr("Error selecting hash algorithms"));
-    dialog.setText(tr("At least one of the hash algorithms must be selected."));
-    dialog.setIcon(QMessageBox::Icon::Information);
+      QMessageBox dialog(centralWidget());
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Error selecting hash algorithms"));
+      dialog.setText(tr("At least one of the hash algorithms must be selected."));
+      dialog.setIcon(QMessageBox::Icon::Information);
 
-    dialog.exec();
+      dialog.exec();
 
-    return;
+      return;
+    }
+    else
+    {
+      // put a default check, this can happen if loading a settings file with no hash set.
+      m_sha1->setCheckState(Qt::Checked);
+      labels << tr("SHA-1");
+    }
   }
 
   for(int i = m_hashTable->columnCount(); i > labels.size(); --i)
@@ -367,7 +426,7 @@ void SimpleHasher::onCheckBoxStateChanged()
   {
     for(int column = 1; column < labels.size(); ++column)
     {
-      QString text = (m_mode == Mode::GENERATE) ? "Not Computed" : "Hash not present";
+      QString text = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
 
       if(m_results[m_files.at(row)].contains(labels.at(column)))
       {
@@ -382,6 +441,7 @@ void SimpleHasher::onCheckBoxStateChanged()
       auto item = new QTableWidgetItem{text};
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
+      item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
 
       m_hashTable->setItem(row, column, item);
     }
@@ -479,6 +539,14 @@ void SimpleHasher::saveSettings()
     settings.setValue(OPTIONS_SPACES,    m_spaces);
     settings.setValue(OPTIONS_UPPERCASE, m_uppercase);
     settings.endGroup();
+
+    bool valid = false;
+    for(auto checkbox: {m_md5, m_sha1, m_sha224, m_sha256, m_sha384, m_sha512, m_tiger})
+    {
+      valid |= checkbox->isChecked();
+    }
+
+    if(!valid) settings.setValue(STATE_SHA1, true);
   }
 }
 
@@ -488,6 +556,7 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
   auto row      = m_files.indexOf(file);
   auto column   = m_headers.indexOf(hash->name());
   auto item     = m_hashTable->item(row, column);
+  auto itemHash = item->text().remove('\n').remove(' ').toLower();
   auto text     = hash->value();
 
   if(m_mode == Mode::GENERATE)
@@ -503,12 +572,12 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
   else
   {
     auto fileItem = m_hashTable->item(row, 0);
-    auto value = hash->value();
+    auto value    = hash->value();
     value = value.remove('\n').remove(' ').toLower();
     bool setIcon = true;
     bool success = true;
 
-    if(item->text().toLower() == value)
+    if(itemHash == value)
     {
       item->setBackgroundColor(QColor(50,200,50));
       item->setToolTip(tr("Correct Hash."));
@@ -523,7 +592,7 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
     {
       auto tableItem = m_hashTable->item(row, i);
 
-      if(tableItem->text() == "Hash not present") continue;
+      if(tableItem->text() == NOT_FOUND) continue;
 
       if(tableItem->backgroundColor() == QColor())
       {
@@ -548,8 +617,6 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
       }
     }
   }
-
-  QApplication::processEvents();
 }
 
 //----------------------------------------------------------------
@@ -601,6 +668,9 @@ void SimpleHasher::copyHashesToClipboard()
 void SimpleHasher::onContextMenuActivated(const QPoint &pos)
 {
   if(!m_hashTable->isEnabled()) return;
+
+  auto item = m_hashTable->itemAt(m_hashTable->mapToGlobal(pos));
+  if(item->column() == 0) return;
 
   m_menu->popup(m_hashTable->mapToGlobal(pos));
 }
@@ -771,6 +841,13 @@ void SimpleHasher::loadInformation()
 
         auto item = m_hashTable->item(row, column);
         item->setText(hashText);
+        item->setToolTip(NOT_COMPUTED_YET);
+
+        if(m_hashTable->item(row,0)->toolTip() == FILE_NOT_FOUND)
+        {
+          item->setBackgroundColor(QColor(200,200,50));
+          item->setToolTip(FILE_NOT_FOUND);
+        }
         ++i;
       }
       begin = data.indexOf('\n', begin);
@@ -785,7 +862,7 @@ void SimpleHasher::loadInformation()
     dialog.setWindowTitle(tr("Can't open files"));
     dialog.setText(tr("Some files couldn't be loaded."));
     dialog.setDetailedText(fileErrors);
-    dialog.setIcon(QMessageBox::Icon::Information);
+    dialog.setIcon(QMessageBox::Icon::Warning);
 
     dialog.exec();
   }
@@ -855,27 +932,35 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
     auto row      = m_hashTable->rowCount();
     auto filename = file.split(QChar('/')).last();
     auto item     = new QTableWidgetItem(filename);
+    auto exists   = QFileInfo{file}.exists();
 
     // convoluted way of doing things, but item->font().setBold(true) doesn't work...
     item->setFont(QFont{item->font().key(), item->font().pointSize(), QFont::Bold});
+    if(!exists)
+    {
+      item->setIcon(QIcon(":/SimpleHasher/warning.svg"));
+      item->setToolTip(FILE_NOT_FOUND);
+    }
 
     m_hashTable->insertRow(row);
     m_hashTable->setItem(row, 0, item);
 
     for(int column = 1; column <= columnCount; ++column)
     {
-      auto item = new QTableWidgetItem("Not computed");
+      auto text = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
+      auto item = new QTableWidgetItem(text);
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
+      item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
 
       m_hashTable->setItem(row, column, item);
     }
   }
 
-  auto enabled = (m_hashTable->rowCount() != 0);
+  auto enabled = !files.empty();
   if(enabled)
   {
-    for(int i = 0; i < m_hashTable->rowCount(); ++i)
+    for(int i = 0; i < m_hashTable->columnCount(); ++i)
     {
       m_hashTable->resizeColumnToContents(i);
     }

@@ -58,8 +58,6 @@ void Tiger::update(QFile &file)
 {
   unsigned long long message_length = 0;
   const unsigned long long fileSize = file.size();
-  int currentProgress = -1;
-  int progressValue = 0;
 
   while(fileSize != message_length)
   {
@@ -72,15 +70,9 @@ void Tiger::update(QFile &file)
     {
       update(QByteArray(), message_length);
     }
-
-    progressValue = (100*message_length)/fileSize;
-
-    if(currentProgress != progressValue)
-    {
-      emit progress(progressValue);
-      currentProgress = progressValue;
-    }
   }
+
+  emit finished();
 }
 
 //----------------------------------------------------------------
