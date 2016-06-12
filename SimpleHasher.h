@@ -33,33 +33,101 @@
 class ComputerThread;
 class QPoint;
 
+/** \class SimpleHasher
+ * \brief Application main window class.
+ *
+ */
 class SimpleHasher
 : public QMainWindow
 , private Ui::SimpleHasherMainWindow
 {
     Q_OBJECT
   public:
+    /** \brief SimpleHasher class constructor.
+     * \param[in] files list of files passed to the application as parameters.
+     * \param[in] parent pointer of the class parent of this one.
+     * \param[in] flags window flags.
+     *
+     */
     SimpleHasher(const QStringList &files, QWidget *parent = nullptr, Qt::WindowFlags flags = 0);
 
+    /** \brief SimpleHasher class virtual destructor.
+     *
+     */
     virtual ~SimpleHasher();
 
   private slots:
+    /** \brief Shows the about dialog.
+     *
+     */
     void onAboutPressed();
+
+    /** \brief Launches the add files dialog and adds the files specified by the user to the table.
+     *
+     */
     void onAddFilesPressed();
+
+    /** \brief Removes the currently selected files from the table.
+     *
+     */
     void onRemoveFilePressed();
+
+    /** \brief Launches the computation thread.
+     *
+     */
     void onComputePressed();
+
+    /** \brief Cancels the computation thread.
+     *
+     *
+     */
     void onCancelPressed();
+
+    /** \brief Launches the select directory dialog and saves the computed hashes to the selected directory.
+     *
+     */
     void onSavePressed();
+
+    /** \brief Updates the GUI when a hash checkbox changes state.
+     *
+     */
     void onCheckBoxStateChanged();
+
+    /** \brief Updates the UI when the computation thread finishes.
+     *
+     */
     void onComputationFinished();
-    void onHashComputed(const QString &file, const Hash *hash);
+
+    /** \brief Updates the UI with the value of the computed hash.
+     * \param[in] filename filename of the computed hash.
+     * \param[in] hash hash object pointer.
+     *
+     */
+    void onHashComputed(const QString &filename, const Hash *hash);
+
+    /** \brief Copies the values of the selected hashes to the clipboard.
+     *
+     */
     void copyHashesToClipboard();
+
+    /** \brief Shows the context menu if activated over a hash cell.
+     *
+     */
     void onContextMenuActivated(const QPoint &pos);
+
+    /** \brief Shows the configuration dialog.
+     *
+     */
     void onOptionsPressed();
 
   private:
+    /** \class Mode
+     * \brief Enumeration of application operation mode.
+     *
+     */
     enum class Mode: char { GENERATE = 0, CHECK };
 
+    /** Settings strings. */
     static QString STATE_MD5;
     static QString STATE_SHA1;
     static QString STATE_SHA224;
@@ -73,15 +141,50 @@ class SimpleHasher
     static QString OPTIONS_SPACES;
     static QString THREADS_NUMBER;
 
+    /** \brief Helper method to load the application settings from the ini file.
+     *
+     */
     void loadSettings();
+
+    /** \brief Helper method to save the application settings to the ini file.
+     *
+     */
     void saveSettings();
+
+    /** \brief Helper method to create the contextual menu on application initialization.
+     *
+     */
     void createContextMenu();
+
+    /** \brief Helper method to connect GUI signals on application initialization.
+     *
+     */
     void connectSignals();
+
+    /** \brief Hides the progress bar and the cancel button. Disables the hash group.
+     *
+     */
     void hideProgress();
+
+    /** \brief Shows the progress bar and the cancel button. Enables the hash group.
+     *
+     */
     void showProgress();
+
+    /** \brief Helper method to load the information contained in the files passed as arguments to the application.
+     *
+     */
     void loadInformation();
+
+    /** \brief Returns a string that describes the type of hash detected in the file passed as argument.
+     * \param[in] file opened file object.
+     *
+     */
     const QString guessHash(QFile &file);
 
+    /** \brief Helper method to add a list of files to the table.
+     *
+     */
     void addFilesToTable(const QStringList &files);
 
     Mode                                   m_mode;       /** operation mode.                                                 */

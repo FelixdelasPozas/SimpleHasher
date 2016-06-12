@@ -20,6 +20,7 @@
 #ifndef HASH_SHA256_H_
 #define HASH_SHA256_H_
 
+// Project
 #include <hash/SHA1.h>
 
 /** \class SHA256
@@ -47,10 +48,6 @@ class SHA256
     { return QString("SHA-256"); }
 
   private:
-    /** \brief Updates the hash with the char block passed as argument.
-     * \param[in] char_block data buffer at maximum 64 bytes in size.
-     *
-     */
     virtual void process_block(const unsigned char *char_block) override;
 
     /** chaining variables. */

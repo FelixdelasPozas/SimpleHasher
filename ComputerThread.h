@@ -76,6 +76,10 @@ class ComputerThread
     void hashComputed(const QString &filename, const Hash *hash);
 
   private slots:
+    /** \brief Computes progress and emits progress and hashComputed signals.
+     * \param[in] filename filename of the computed hash.
+     * \param[in] hash hash object pointer.
+     */
     void onHashComputed(const QString &filename, const Hash *hash);
 
   protected:
@@ -91,6 +95,7 @@ class ComputerThread
     QWaitCondition          m_condition;     /** wait condition for the main thread.                            */
     int                     m_maxThreads;    /** max number of threads in the system.                           */
     std::atomic<int>        m_threadsNum;    /** number of threads currently running.                           */
+    QMap<QString, HashList> m_results;       /** computed hashes.                                               */
 };
 
 /** \class HashChecker
@@ -138,7 +143,5 @@ class HashChecker
     std::shared_ptr<Hash> m_hash; /** hash object to update. */
     QFile                *m_file; /** opened QFile object.   */
 };
-
-
 
 #endif // COMPUTERTHREAD_H_

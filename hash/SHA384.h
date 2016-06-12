@@ -45,7 +45,7 @@ class SHA384
 
   private:
     /** \brief Updates the hash with the char block passed as argument.
-     * \param[in] char_block data buffer at maximum 64 bytes in size.
+     * \param[in] char_block data buffer at maximum 128 bytes in size.
      *
      */
     virtual void process_block(const unsigned char *char_block);

@@ -52,7 +52,7 @@ ComputerThread::ComputerThread(QMap<QString, HashList> computations, const int t
 //----------------------------------------------------------------
 QMap<QString, HashList> ComputerThread::getResults() const
 {
-  return m_computations;
+  return m_results;
 }
 
 //----------------------------------------------------------------
@@ -72,6 +72,15 @@ void ComputerThread::onHashComputed(const QString &filename, const Hash *hash)
 
   emit progress((100*m_progress)/m_hashNumber);
 
+  for(auto hashSPtr: m_computations[filename])
+  {
+    if(hashSPtr.get() == hash)
+    {
+      m_results[filename] << hashSPtr;
+      break;
+    }
+  }
+
   --m_threadsNum;
   m_condition.wakeAll();
 }
@@ -82,8 +91,10 @@ void ComputerThread::run()
   QString fileErrors;
   QList<std::shared_ptr<HashChecker>> threads;
 
-  for(auto filename: m_computations.keys())
+  for(int i = 0; i < m_computations.keys().size() && !m_abort; ++i)
   {
+    auto filename = m_computations.keys().at(i);
+
     for(auto hash: m_computations[filename])
     {
       auto file = new QFile{filename};
@@ -100,7 +111,7 @@ void ComputerThread::run()
 
       threads << runnable;
 
-      // wait if we have reached the maximum number of threads of the system.
+      // wait if we have reached the maximum number of threads.
       if(m_threadsNum == m_maxThreads)
       {
         m_mutex.lock();

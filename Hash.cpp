@@ -23,4 +23,6 @@
 //----------------------------------------------------------------
 Hash::Hash()
 {
+  // This file is needed to generate a object file for hash class,
+  // if not present the subclasses won't compile.
 }

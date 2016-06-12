@@ -24,8 +24,8 @@
 QString Tiger::RANDOM_VALUE = QString("Tiger - A Fast New Hash Function, by Ross Anderson and Eli Biham");
 
 // Default parameters used.
-int Tiger::PASSES_NUMBER = 5;
-int Tiger::BLOCK_PASSES = 3;
+int  Tiger::PASSES_NUMBER   = 5;
+int  Tiger::BLOCK_PASSES    = 3;
 bool Tiger::TABLE_AVAILABLE = false;
 
 static unsigned long long tiger_table[1024]; /** tiger table values. */

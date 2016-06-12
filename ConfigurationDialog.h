@@ -28,6 +28,7 @@
 
 /** \class CondifurationDialog.
  * \brief Implements the configuration dialog.
+ *
  */
 class ConfigurationDialog
 : public QDialog

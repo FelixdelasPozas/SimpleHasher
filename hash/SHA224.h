@@ -48,10 +48,6 @@ class SHA224
     { return QString("SHA-224"); }
 
   private:
-    /** \brief Updates the hash with the char block passed as argument.
-     * \param[in] char_block data buffer at maximum 64 bytes in size.
-     *
-     */
     virtual void process_block(const unsigned char *char_block) override;
 
     /** chaining variables */

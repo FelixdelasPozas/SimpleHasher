@@ -20,10 +20,11 @@
 #ifndef HASH_TIGER_H_
 #define HASH_TIGER_H_
 
+// Project
 #include <Hash.h>
 
 /** \class Tiger
- * \brief Implementation of the Tiger hash algorithm of 128 bits.
+ * \brief Implementation of the Tiger hash algorithm of 192 bits.
  *
  */
 class Tiger
@@ -64,10 +65,10 @@ class Tiger
      */
     void generate_table(const unsigned char *message, const unsigned int passes_number);
 
-    static QString RANDOM_VALUE;  /** seed for table generation.                               */
-    static int PASSES_NUMBER;     /** number of passes for table generation.                   */
-    static int BLOCK_PASSES;      /** number of passes when processing the data block.         */
-    static bool TABLE_AVAILABLE;  /** true if the table has been computed and false otherwise. */
+    static QString RANDOM_VALUE;    /** seed for table generation.                               */
+    static int     PASSES_NUMBER;   /** number of passes for table generation.                   */
+    static int     BLOCK_PASSES;    /** number of passes when processing the data block.         */
+    static bool    TABLE_AVAILABLE; /** true if the table has been computed and false otherwise. */
 
     typedef struct
     {

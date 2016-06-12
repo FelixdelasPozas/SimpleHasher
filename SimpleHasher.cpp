@@ -294,71 +294,70 @@ void SimpleHasher::onSavePressed()
 
   auto selectedDir = QFileDialog::getExistingDirectory(centralWidget(), tr("Select directory for output files"), dir);
 
-  if(!selectedDir.isEmpty())
-  {
+  if(selectedDir.isEmpty()) return;
+
     // set the value of dir first
-    dir = selectedDir;
+  dir = selectedDir;
 
-    QDir outputdir{selectedDir};
-    QStringList notSaved;
+  QDir outputdir{selectedDir};
+  QStringList notSaved;
 
-    for(int index = 1; index < m_headers.size(); ++index)
+  for (int index = 1; index < m_headers.size(); ++index)
+  {
+    if (!m_results[m_files[0]].keys().contains(m_headers.at(index)))
     {
-      if(!m_results[m_files[0]].keys().contains(m_headers.at(index)))
-      {
-        notSaved << m_headers.at(index);
-        continue;
-      }
-
-      auto hash     = m_headers.at(index);
-      auto filename = hash.remove('-').toUpper() + tr("SUMS.txt");
-      auto filepath = outputdir.absoluteFilePath(filename);
-
-      hashFilenames << filename;
-
-      QFile file{filepath};
-
-      if(!file.open(QIODevice::WriteOnly|QIODevice::Truncate))
-      {
-        QMessageBox dialog(centralWidget());
-        dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
-        dialog.setWindowTitle(tr("Error saving hashes"));
-        dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
-        dialog.setDetailedText(tr("Error: ") + file.errorString());
-        dialog.setIcon(QMessageBox::Icon::Warning);
-
-        dialog.exec();
-        return;
-      }
-
-      QByteArray data;
-
-      for(int i = 0; i < m_files.size(); ++i)
-      {
-        auto hashText = m_results[m_files.at(i)][m_headers.at(index)]->value();
-        auto name     = m_files.at(i).split(QChar('/')).last();
-        data.append(hashText.remove('\n').remove(' ').toLower());
-        data.append(tr(" *%1\n").arg(name));
-      }
-
-      file.write(data);
-      if(!file.flush())
-      {
-        QMessageBox dialog(centralWidget());
-        dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
-        dialog.setWindowTitle(tr("Error saving hashes"));
-        dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
-        dialog.setDetailedText(tr("Error: ") + file.errorString());
-        dialog.setIcon(QMessageBox::Icon::Warning);
-
-        dialog.exec();
-
-        QFile::remove(filepath);
-        return;
-      }
-
-      file.close();
+      notSaved << m_headers.at(index);
+      continue;
     }
+
+    auto hash = m_headers.at(index);
+    auto filename = hash.remove('-').toUpper() + tr("SUMS.txt");
+    auto filepath = outputdir.absoluteFilePath(filename);
+
+    hashFilenames << filename;
+
+    QFile file{filepath};
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    {
+      QMessageBox dialog(centralWidget());
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Error saving hashes"));
+      dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+      dialog.setDetailedText(tr("Error: ") + file.errorString());
+      dialog.setIcon(QMessageBox::Icon::Warning);
+
+      dialog.exec();
+      return;
+    }
+
+    QByteArray data;
+
+    for (int i = 0; i < m_files.size(); ++i)
+    {
+      auto hashText = m_results[m_files.at(i)][m_headers.at(index)]->value();
+      auto name = m_files.at(i).split(QChar('/')).last();
+      data.append(hashText.remove('\n').remove(' ').toLower());
+      data.append(tr(" *%1\n").arg(name));
+    }
+
+    file.write(data);
+    if (!file.flush())
+    {
+      QMessageBox dialog(centralWidget());
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Error saving hashes"));
+      dialog.setText(tr("Couldn't create file '%1'.").arg(filename));
+      dialog.setDetailedText(tr("Error: ") + file.errorString());
+      dialog.setIcon(QMessageBox::Icon::Warning);
+
+      dialog.exec();
+
+      QFile::remove(filepath);
+      return;
+    }
+
+    file.close();
   }
 
   QMessageBox dialog(centralWidget());
@@ -379,6 +378,8 @@ void SimpleHasher::onSavePressed()
 //----------------------------------------------------------------
 void SimpleHasher::onCheckBoxStateChanged()
 {
+  m_save->setEnabled(false);
+
   QStringList labels = { tr("Filename") };
 
   if(m_md5->isChecked())    labels << tr("MD5");
@@ -424,6 +425,7 @@ void SimpleHasher::onCheckBoxStateChanged()
     m_hashTable->insertColumn(i);
   }
 
+  bool enableSave = false;
   for(int row = 0; row < m_files.size(); ++row)
   {
     for(int column = 1; column < labels.size(); ++column)
@@ -438,6 +440,7 @@ void SimpleHasher::onCheckBoxStateChanged()
         if(m_oneline)   text = text.replace('\n', ' ');
         if(!m_spaces)   text = text.remove(' ');
         if(m_uppercase) text = text.toUpper();
+        enableSave = true;
       }
 
       auto item = new QTableWidgetItem{text};
@@ -448,6 +451,8 @@ void SimpleHasher::onCheckBoxStateChanged()
       m_hashTable->setItem(row, column, item);
     }
   }
+
+  m_save->setEnabled(enableSave);
 
   m_headers = labels;
   m_hashTable->setHorizontalHeaderLabels(labels);
@@ -678,10 +683,13 @@ void SimpleHasher::onContextMenuActivated(const QPoint &pos)
 {
   if(!m_hashTable->isEnabled()) return;
 
-  auto item = m_hashTable->itemAt(m_hashTable->mapToGlobal(pos));
-  if(item->column() == 0) return;
+  auto item = m_hashTable->itemAt(pos);
+  if(item)
+  {
+    if(item->column() == 0) return;
 
-  m_menu->popup(m_hashTable->mapToGlobal(pos));
+    m_menu->popup(m_hashTable->mapToGlobal(pos));
+  }
 }
 
 //----------------------------------------------------------------
@@ -690,7 +698,7 @@ const QString SimpleHasher::guessHash(QFile &file)
   QString result{"Unknown"};
 
   file.seek(0);
-  auto data = file.read(150); // a bit more than the largest of the hashes (512 bits/8 char bits = 64).
+  auto data = file.read(150); // a bit more than the largest of the hashes (512 bits/4 char bits = 128).
 
   QRegExp reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
 
@@ -839,10 +847,16 @@ void SimpleHasher::loadInformation()
     begin = 0;
     int i = 0;
     auto length = parameterHashLengths.at(parameterFiles.indexOf(filename));
-    while(begin != -1)
+    while((begin != -1) && (i < files.size()))
     {
       auto hashText = data.mid(begin, length);
       auto index = hashexp.indexIn(hashText);
+
+      if((i < files.size()) && (hashText.length() != length))
+      {
+        fileErrors += tr("%1 error: %2\n").arg(filename).arg(tr("Error parsing hashes, incorrect hash length at position %2.").arg(begin));
+        file.close();
+      }
 
       if(index != -1 && (hashText.length() == length))
       {
@@ -862,7 +876,7 @@ void SimpleHasher::loadInformation()
         ++i;
       }
       begin = data.indexOf('\n', begin);
-      if(begin != -1) ++begin;
+      if(begin != -1) ++begin; // jump the newline character.
     }
   }
 
