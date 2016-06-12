@@ -13,8 +13,8 @@ Tool to generate and check file signatures (hashes) using the following hash alg
 * Message Digest 5 (MD5)
 * Secure Hash Algorithm (SHA): Variants SHA-1, SHA-224, SHA-256, SHA-384 and SHA-512.
 * Tiger
-The application can be used to check the SUM files that some websites provide to check for the integrity and authenticity of files. If invoked with a SUM file as parameter the application will check the signatures of the files present in the same folder as the SUM file. 
-The computed hashes can be saved to disk (the whole table or only the selected ones) or to the clipboard using the contextual menu.
+
+The application can be used to check the SUM files that some websites provide to check for the integrity and authenticity of files. If invoked with a SUM file as parameter the application will check the signatures of the files present in the same folder as the SUM file. The computed hashes can be saved to disk (the whole table or only the selected ones) or to the clipboard using the contextual menu.
 
 ## Options
 From the configuration dialog several options can be modified:
@@ -37,15 +37,15 @@ The only current option is build from source as binaries are not provided.
 # Screenshots
 Simple main dialog, showing the progress while computing the hashes of some files.
 
-![Main dialog]()
+![maindialog](https://cloud.githubusercontent.com/assets/12167134/15993542/772c63ba-30e9-11e6-9190-eae0761fa95b.jpg)
 
 When checking hash files passed as a parameter the green means success (hashes match), red indicates errors (hashes don't match) and yellow indicates that the files were not found (so hashes can't be checked).
 
-![Check dialog]()
+![hashcheck](https://cloud.githubusercontent.com/assets/12167134/15993541/772701cc-30e9-11e6-9dee-b5a288412e1b.jpg)
 
 Configuration dialog
 
-![Main dialog]()
+![configuration](https://cloud.githubusercontent.com/assets/12167134/15993540/76f68e16-30e9-11e6-852f-328f1455117a.jpg)
 
 # Repository information
 **Version**: 1.0.0
