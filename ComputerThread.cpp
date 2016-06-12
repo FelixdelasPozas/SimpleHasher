@@ -27,13 +27,13 @@
 #include <QApplication>
 
 //----------------------------------------------------------------
-ComputerThread::ComputerThread(QMap<QString, HashList> computations, QObject *parent)
+ComputerThread::ComputerThread(QMap<QString, HashList> computations, const int threadsNum, QObject *parent)
 : QThread       {parent}
 , m_computations{computations}
 , m_abort       {false}
 , m_hashNumber  {0}
 , m_progress    {0}
-, m_maxThreads  {QThreadPool::globalInstance()->maxThreadCount()}
+, m_maxThreads  {threadsNum}
 , m_threadsNum  {0}
 {
   qRegisterMetaType<const Hash *>("constHashPtr");
@@ -41,6 +41,11 @@ ComputerThread::ComputerThread(QMap<QString, HashList> computations, QObject *pa
   for(auto file: m_computations.keys())
   {
     m_hashNumber += m_computations[file].size();
+  }
+
+  if(m_maxThreads == -1)
+  {
+    m_maxThreads = QThreadPool::globalInstance()->maxThreadCount();
   }
 }
 

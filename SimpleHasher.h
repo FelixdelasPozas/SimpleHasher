@@ -71,6 +71,7 @@ class SimpleHasher
     static QString OPTIONS_ONELINE;
     static QString OPTIONS_UPPERCASE;
     static QString OPTIONS_SPACES;
+    static QString THREADS_NUMBER;
 
     void loadSettings();
     void saveSettings();
@@ -83,15 +84,16 @@ class SimpleHasher
 
     void addFilesToTable(const QStringList &files);
 
-    Mode                                   m_mode;      /** operation mode.                                                 */
-    QStringList                            m_files;     /** files in the table.                                             */
-    std::shared_ptr<ComputerThread>        m_thread;    /** computer thread.                                                */
-    bool                                   m_spaces;    /** true to divide the hashes with spaces.                          */
-    bool                                   m_oneline;   /** true to show the long hashes in one line.                       */
-    bool                                   m_uppercase; /** true to show the hashes in uppercase.                           */
-    QMap<QString, QMap<QString, HashSPtr>> m_results;   /** maps files -> computed hashes.                                  */
-    QStringList                            m_headers;   /** list of column strings, just to avoid computing over and over.. */
-    std::shared_ptr<QMenu>                 m_menu;      /** contextual menu for the table.                                  */
+    Mode                                   m_mode;       /** operation mode.                                                 */
+    QStringList                            m_files;      /** files in the table.                                             */
+    std::shared_ptr<ComputerThread>        m_thread;     /** computer thread.                                                */
+    bool                                   m_spaces;     /** true to divide the hashes with spaces.                          */
+    bool                                   m_oneline;    /** true to show the long hashes in one line.                       */
+    bool                                   m_uppercase;  /** true to show the hashes in uppercase.                           */
+    int                                    m_threadsNum; /** number of simultaneous threads to compute hashes.               */
+    QMap<QString, QMap<QString, HashSPtr>> m_results;    /** maps files -> computed hashes.                                  */
+    QStringList                            m_headers;    /** list of column strings, just to avoid computing over and over.. */
+    std::shared_ptr<QMenu>                 m_menu;       /** contextual menu for the table.                                  */
 };
 
 #endif // SIMPLEHASHER_H_

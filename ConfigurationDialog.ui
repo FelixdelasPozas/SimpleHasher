@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>351</width>
-    <height>193</height>
+    <width>355</width>
+    <height>268</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>351</width>
-    <height>193</height>
+    <width>355</width>
+    <height>268</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>351</width>
-    <height>193</height>
+    <width>355</width>
+    <height>268</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -121,6 +121,53 @@ QGroupBox::title {
          <string>Show hashes in uppercase.</string>
         </property>
        </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="styleSheet">
+      <string notr="true">QGroupBox {
+    border: 1px solid gray;
+    border-radius: 5px;
+    margin-top: 2ex;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0px 5px;
+}</string>
+     </property>
+     <property name="title">
+      <string>Multithreading</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="QCheckBox" name="m_useMaxThreads">
+        <property name="text">
+         <string>Use the maximum number of simultaneous threads possible.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,0">
+        <item>
+         <widget class="QLabel" name="m_threadsLabel">
+          <property name="text">
+           <string>Maximum number of simultaneous threads</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="m_threadsNum">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>

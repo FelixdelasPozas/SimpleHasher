@@ -24,15 +24,17 @@
 #include <QDir>
 #include <QApplication>
 #include <QMessageBox>
+#include <QThreadPool>
 
 const QString SEND_TO_DIRPATH = QString("%1/AppData/Roaming/Microsoft/Windows/SendTo");
 
 //----------------------------------------------------------------
-ConfigurationDialog::ConfigurationDialog(bool useSpaces, bool split, bool uppercase, QWidget *parent)
-: QDialog    {parent}
-, m_useSpaces{useSpaces}
-, m_splitHash{split}
-, m_uppercase{uppercase}
+ConfigurationDialog::ConfigurationDialog(bool useSpaces, bool split, bool uppercase, int numberOfThreads, QWidget *parent)
+: QDialog     {parent}
+, m_useSpaces {useSpaces}
+, m_splitHash {split}
+, m_uppercase {uppercase}
+, m_numThreads{numberOfThreads}
 {
   setupUi(this);
 
@@ -42,15 +44,51 @@ ConfigurationDialog::ConfigurationDialog(bool useSpaces, bool split, bool upperc
 
   updateSentToUI();
 
+  if(m_numThreads == -1)
+  {
+    m_useMaxThreads->setChecked(true);
+    onThreadsCheckboxStateChanged();
+  }
+  else
+  {
+    m_threadsNum->setValue(m_numThreads);
+    m_useMaxThreads->setChecked(false);
+  }
+
   connect(m_sentToButton, SIGNAL(pressed()), this, SLOT(onSendToButtonPressed()));
+  connect(m_useMaxThreads, SIGNAL(stateChanged(int)), this, SLOT(onThreadsCheckboxStateChanged()));
 }
 
 //----------------------------------------------------------------
 bool ConfigurationDialog::isModified() const
 {
-  return ((m_useSpaces != m_spacesCheckbox->isChecked()) ||
-          (m_splitHash != m_splitCheckbox->isChecked())  ||
-          (m_uppercase != m_uppercaseCheckbox->isChecked()));
+  auto threadsValue = m_useMaxThreads->isChecked() ? -1 : m_threadsNum->value();
+
+  return ((m_useSpaces  != m_spacesCheckbox->isChecked()) ||
+          (m_splitHash  != m_splitCheckbox->isChecked())  ||
+          (m_uppercase  != m_uppercaseCheckbox->isChecked()) ||
+          (m_numThreads != threadsValue));
+}
+
+//----------------------------------------------------------------
+int ConfigurationDialog::numberOfThreads() const
+{
+  auto value = m_useMaxThreads->isChecked() ? -1 : m_threadsNum->value();
+
+  return value;
+}
+
+//----------------------------------------------------------------
+void ConfigurationDialog::onThreadsCheckboxStateChanged()
+{
+  auto value = (m_useMaxThreads->isChecked());
+  m_threadsLabel->setEnabled(!value);
+  m_threadsNum->setEnabled(!value);
+
+  if(value)
+  {
+    m_threadsNum->setValue(QThreadPool::globalInstance()->maxThreadCount());
+  }
 }
 
 //----------------------------------------------------------------

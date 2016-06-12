@@ -39,6 +39,7 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QClipboard>
+#include <QThreadPool>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -51,6 +52,7 @@ QString SimpleHasher::GEOMETRY          = QString("Application Geometry");
 QString SimpleHasher::OPTIONS_ONELINE   = QString("Hash in one line");
 QString SimpleHasher::OPTIONS_UPPERCASE = QString("Hash in uppercase");
 QString SimpleHasher::OPTIONS_SPACES    = QString("Break hash with spaces");
+QString SimpleHasher::THREADS_NUMBER    = QString("Number of simultaneous threads");
 
 const QString NOT_FOUND            = QString("Not found");
 const QString NOT_FOUND_TOOLTIP    = QString("Hash is not in the files passed as argument.");
@@ -266,7 +268,7 @@ void SimpleHasher::onComputePressed()
 
   if(!computations.empty())
   {
-    m_thread = std::make_shared<ComputerThread>(computations);
+    m_thread = std::make_shared<ComputerThread>(computations, m_threadsNum);
     showProgress();
 
     connect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
@@ -510,10 +512,16 @@ void SimpleHasher::loadSettings()
   settings.endGroup();
 
   settings.beginGroup("Options");
-  m_oneline   = settings.value(OPTIONS_ONELINE, false).toBool();
-  m_spaces    = settings.value(OPTIONS_SPACES, true).toBool();
-  m_uppercase = settings.value(OPTIONS_UPPERCASE, false).toBool();
+  m_oneline    = settings.value(OPTIONS_ONELINE, false).toBool();
+  m_spaces     = settings.value(OPTIONS_SPACES, true).toBool();
+  m_uppercase  = settings.value(OPTIONS_UPPERCASE, false).toBool();
+  m_threadsNum = settings.value(THREADS_NUMBER, QThreadPool::globalInstance()->maxThreadCount()).toInt();
   settings.endGroup();
+
+  if(m_threadsNum != -1)
+  {
+    m_threadsNum = std::min(m_threadsNum, QThreadPool::globalInstance()->maxThreadCount());
+  }
 }
 
 //----------------------------------------------------------------
@@ -538,6 +546,7 @@ void SimpleHasher::saveSettings()
     settings.setValue(OPTIONS_ONELINE,   m_oneline);
     settings.setValue(OPTIONS_SPACES,    m_spaces);
     settings.setValue(OPTIONS_UPPERCASE, m_uppercase);
+    settings.setValue(THREADS_NUMBER,    m_threadsNum);
     settings.endGroup();
 
     bool valid = false;
@@ -894,13 +903,14 @@ void SimpleHasher::loadInformation()
 //----------------------------------------------------------------
 void SimpleHasher::onOptionsPressed()
 {
-  ConfigurationDialog dialog{m_spaces, m_oneline, m_uppercase, centralWidget()};
+  ConfigurationDialog dialog{m_spaces, m_oneline, m_uppercase, m_threadsNum, centralWidget()};
 
   if(dialog.exec() == QDialog::Accepted && dialog.isModified())
   {
-    m_spaces    = dialog.useSpacesChecked();
-    m_oneline   = dialog.splitHashesChecked();
-    m_uppercase = dialog.uppercaseChecked();
+    m_spaces     = dialog.useSpacesChecked();
+    m_oneline    = dialog.splitHashesChecked();
+    m_uppercase  = dialog.uppercaseChecked();
+    m_threadsNum = dialog.numberOfThreads();
 
     onCheckBoxStateChanged();
   }

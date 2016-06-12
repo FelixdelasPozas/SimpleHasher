@@ -43,10 +43,10 @@ class ComputerThread
   public:
     /** \brief ComputeThread class constructor.
      * \param[in] computations maps files to hashes to be computed.
-     * \param[in] hashes list of hash objects.
+     * \param[in] threadsNum number of simultaneous threads or -1 for system's maximum value.
      *
      */
-    ComputerThread(QMap<QString, HashList> computations, QObject *parent = nullptr);
+    ComputerThread(QMap<QString, HashList> computations, const int threadsNum, QObject *parent = nullptr);
 
     /** \brief ComputeThread clss virtual destructor.
      *
@@ -82,15 +82,15 @@ class ComputerThread
     virtual void run();
 
   private:
-    QMap<QString, HashList> m_computations;  /** maps the files with the hashes to be computed.               */
-    bool                    m_abort;         /** set to true to stop computing and return ASAP.               */
-    int                     m_hashNumber;    /** total number of hashes to compute.                           */
-    std::atomic<int>        m_progress;      /** progress accumulator.                                        */
-    QMutex                  m_progressMutex; /** protects the progress variable.                              */
-    QMutex                  m_mutex;         /** mutex for the wait condition.                                */
-    QWaitCondition          m_condition;     /** wait condition for the main thread.                          */
-    int                     m_maxThreads;    /** max number of threads in the system.                         */
-    std::atomic<int>        m_threadsNum;    /** number of threads currently running.                         */
+    QMap<QString, HashList> m_computations;  /** maps the files with the hashes to be computed.                 */
+    bool                    m_abort;         /** set to true to stop computing and return ASAP.                 */
+    int                     m_hashNumber;    /** total number of hashes to compute.                             */
+    std::atomic<int>        m_progress;      /** progress accumulator.                                          */
+    QMutex                  m_progressMutex; /** protects the progress variable.                                */
+    QMutex                  m_mutex;         /** mutex for the wait condition.                                  */
+    QWaitCondition          m_condition;     /** wait condition for the main thread.                            */
+    int                     m_maxThreads;    /** max number of threads in the system.                           */
+    std::atomic<int>        m_threadsNum;    /** number of threads currently running.                           */
 };
 
 /** \class HashChecker

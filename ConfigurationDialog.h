@@ -38,10 +38,11 @@ class ConfigurationDialog
     /** \brief ConfigurationDialog class constructor.
      * \param[in] useSpaces true to check the 'use spaces' checkbox and false otherwise.
      * \param[in] split true to check the 'split' checkbox and false otherwise.
+     * \param[in] threadsNum number of threads value or -1 for maximum.
      * \param[in] uppercase true to check the 'uppercase' checkbox and false otherwise.
      *
      */
-    ConfigurationDialog(bool useSpaces, bool split, bool uppercase, QWidget *parent = nullptr);
+    ConfigurationDialog(bool useSpaces, bool split, bool uppercase, int threadsNum, QWidget *parent = nullptr);
 
     /** \brief ConfigurationDialog class virtual destructor.
      *
@@ -72,11 +73,21 @@ class ConfigurationDialog
      */
     bool isModified() const;
 
+    /** \brief Returns the number of threads or -1 if maximum.
+     *
+     */
+    int numberOfThreads() const;
+
   private slots:
     /** \brief Installs or removes the 'Send To' link in the system.
      *
      */
     void onSendToButtonPressed();
+
+    /** \brief Updates the UI when the user checks the max threads checkbox.
+     *
+     */
+    void onThreadsCheckboxStateChanged();
 
   private:
     /** \brief Updates the 'Send To' UI.
@@ -89,19 +100,10 @@ class ConfigurationDialog
      */
     bool isSendToPresent() const;
 
-    /** \brief Installs the "Send To" shortcut in the system.
-     *
-     */
-    void installSendTo();
-
-    /** \brief Removes the "Send To" shortcut from the system.
-     *
-     */
-    void removeSendTo();
-
-    bool m_useSpaces; /** initial value for 'use spaces' checkbox.   */
-    bool m_splitHash; /** initial value for 'split hashes' checkbox. */
-    bool m_uppercase; /** initial value for 'uppercase' checkbox.    */
+    bool m_useSpaces;  /** initial value for 'use spaces' checkbox.   */
+    bool m_splitHash;  /** initial value for 'split hashes' checkbox. */
+    bool m_uppercase;  /** initial value for 'uppercase' checkbox.    */
+    int  m_numThreads; /** number of threads initial value.           */
 };
 
 #endif // CONFIGURATIONDIALOG_H_
