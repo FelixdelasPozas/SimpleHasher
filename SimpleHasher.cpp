@@ -40,6 +40,7 @@
 #include <QMenu>
 #include <QClipboard>
 #include <QThreadPool>
+#include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -300,17 +301,26 @@ void SimpleHasher::onSavePressed()
   dir = selectedDir;
 
   QDir outputdir{selectedDir};
-  QStringList notSaved;
+  int notSaved = 0;
 
-  for (int index = 1; index < m_headers.size(); ++index)
+  for (int column = 1; column < m_headers.size(); ++column)
   {
-    if (!m_results[m_files[0]].keys().contains(m_headers.at(index)))
+    QList<int> toSave;
+    auto hash = m_headers.at(column);
+
+    for(int row = 0; row < m_files.size(); ++row)
     {
-      notSaved << m_headers.at(index);
-      continue;
+      if (!m_results[m_files[row]].keys().contains(hash))
+      {
+        ++notSaved;
+        continue;
+      }
+
+      toSave << row;
     }
 
-    auto hash = m_headers.at(index);
+    if(toSave.isEmpty()) continue;
+
     auto filename = hash.remove('-').toUpper() + tr("SUMS.txt");
     auto filepath = outputdir.absoluteFilePath(filename);
 
@@ -333,10 +343,10 @@ void SimpleHasher::onSavePressed()
 
     QByteArray data;
 
-    for (int i = 0; i < m_files.size(); ++i)
+    for (auto row: toSave)
     {
-      auto hashText = m_results[m_files.at(i)][m_headers.at(index)]->value();
-      auto name = m_files.at(i).split(QChar('/')).last();
+      auto hashText = m_results[m_files.at(row)][m_headers.at(column)]->value();
+      auto name = m_files.at(row).split(QChar('/')).last();
       data.append(hashText.remove('\n').remove(' ').toLower());
       data.append(tr(" *%1\n").arg(name));
     }
@@ -365,11 +375,11 @@ void SimpleHasher::onSavePressed()
   dialog.setWindowTitle(tr("Save hashes to disk"));
 
   auto text = tr("Created %1 hash files in directory '%2'.").arg(hashFilenames.size()).arg(selectedDir);
-  if(!notSaved.isEmpty())
+  if(notSaved != 0)
   {
-    auto firstPlural = notSaved.size() > 1 ? "es weren't" : " wasn't";
-    auto secondPlural = notSaved.size() > 1 ? "they haven't" : "it hasn't";
-    text += tr("\n%1 hash%2 saved because %3 been computed yet.").arg(notSaved.size()).arg(firstPlural).arg(secondPlural);
+    auto firstPlural = (notSaved > 1) ? "es weren't" : " wasn't";
+    auto secondPlural = (notSaved > 1) ? "they haven't" : "it hasn't";
+    text += tr("\n%1 hash%2 saved because %3 been computed yet.").arg(notSaved).arg(firstPlural).arg(secondPlural);
   }
 
   dialog.setText(text);
@@ -703,7 +713,7 @@ void SimpleHasher::saveSelectedHashes()
 
   QStringList hashFilenames;
   QDir outputDir{selectedDir};
-  int notSaved;
+  int notSaved = 0;
 
   auto selectedIndexes = m_hashTable->selectionModel()->selectedIndexes();
 
@@ -714,7 +724,16 @@ void SimpleHasher::saveSelectedHashes()
     {
       if(index.column() == 0) continue;
 
-      indexes[index.column()] << index.row();
+      auto hash = m_headers.at(index.column());
+
+      if(m_results[m_files.at(index.row())].contains(hash))
+      {
+        indexes[index.column()] << index.row();
+      }
+      else
+      {
+        ++notSaved;
+      }
     }
   }
 
@@ -728,20 +747,10 @@ void SimpleHasher::saveSelectedHashes()
 
     for (auto row: indexes[column])
     {
-      if(!m_results[m_files.at(row)].contains(m_headers.at(column)))
-      {
-        ++notSaved;
-        continue;
-      }
       auto hashText = m_results[m_files.at(row)][m_headers.at(column)]->value();
       auto name = m_files.at(row).split(QChar('/')).last();
       data.append(hashText.remove('\n').remove(' ').toLower());
       data.append(tr(" *%1\n").arg(name));
-    }
-
-    if(notSaved == indexes[column].size())
-    {
-      continue;
     }
 
     hashFilenames << filename;
