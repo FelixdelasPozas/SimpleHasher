@@ -835,23 +835,26 @@ const QString SimpleHasher::guessHash(QFile &file)
   file.seek(0);
   auto data = file.read(150); // a bit more than the largest of the hashes (512 bits/4 char bits = 128).
 
-  QRegExp reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
-
-  if(reg.indexIn(data) != -1)
+  if(data.length() > 32)
   {
-    auto hash = reg.cap();
+    QRegExp reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
 
-    switch(hash.length())
+    if(reg.indexIn(data) != -1)
     {
-      case 32 : return "MD5";
-      case 40 : return "SHA-1";
-      case 56 : return "SHA-224";
-      case 64 : return "SHA-256";
-      case 96 : return "SHA-384";
-      case 128: return "SHA-512";
-      case 48 : return "Tiger";
-      default:
-        break;
+      auto hash = reg.cap();
+
+      switch(hash.length())
+      {
+        case 32 : return "MD5";
+        case 40 : return "SHA-1";
+        case 56 : return "SHA-224";
+        case 64 : return "SHA-256";
+        case 96 : return "SHA-384";
+        case 128: return "SHA-512";
+        case 48 : return "Tiger";
+        default:
+          break;
+      }
     }
   }
 
@@ -964,17 +967,52 @@ void SimpleHasher::loadInformation()
     QStringList files;
     int begin = 0;
     auto data = file.readAll();
-    while(data.indexOf('*', begin) != -1)
-    {
-      begin = data.indexOf('*', begin) + 1;
-      auto end = data.indexOf('\n', begin);
-      if(end == -1) end = data.length();
 
-      files << path.absoluteFilePath(data.mid(begin, end-begin));
-      begin = end;
+    if(data.indexOf('*', begin) != -1)
+    {
+      while(data.indexOf('*', begin) != -1)
+      {
+        begin = data.indexOf('*', begin) + 1;
+        auto end = data.indexOf('\n', begin);
+        if(end == -1) end = data.length();
+
+        auto fileName = data.mid(begin, end-begin);
+
+        if(path.exists(fileName))
+        {
+          files << path.absoluteFilePath(fileName);
+        }
+
+        begin = end;
+      }
+    }
+    else
+    {
+      // files without '*' first.
+      file.seek(0);
+      auto line = file.readLine();
+      while(!line.isEmpty())
+      {
+        auto lineParts = QString(line).split(' ');
+        if(lineParts.size() == 2 && path.exists(lineParts[1]))
+        {
+          files << files << path.absoluteFilePath(lineParts[1]);
+        }
+
+        line = file.readLine();
+      }
     }
 
-    addFilesToTable(files);
+    if(!files.empty())
+    {
+      addFilesToTable(files);
+    }
+    else
+    {
+      fileErrors += tr("%1 error: %2\n").arg(filename).arg(tr("File doesn't contains hashes."));
+      file.close();
+      continue;
+    }
 
     QRegExp hashexp{"(([a-h]*)([A-H]*)([0-9]*))*"};
     hashexp.setMinimal(false);

@@ -21,8 +21,8 @@
 #define SIMPLEHASHER_H_
 
 // Qt
-#include <QMainWindow>
 #include "ui_SimpleHasher.h"
+#include <QMainWindow>
 
 // C++
 #include <memory>
