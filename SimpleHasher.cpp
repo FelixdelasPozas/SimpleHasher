@@ -517,7 +517,7 @@ void SimpleHasher::onComputationFinished()
 //----------------------------------------------------------------
 void SimpleHasher::loadSettings()
 {
-  QSettings settings{"SimpleHasher.ini", QSettings::IniFormat};
+  QSettings settings("Felix de las Pozas Alvarez", "SimpleHasher");
 
   auto geometry = settings.value(GEOMETRY, QByteArray()).toByteArray();
   if(geometry.length() != 0)
@@ -551,7 +551,7 @@ void SimpleHasher::loadSettings()
 //----------------------------------------------------------------
 void SimpleHasher::saveSettings()
 {
-  QSettings settings{"SimpleHasher.ini", QSettings::IniFormat};
+  QSettings settings("Felix de las Pozas Alvarez", "SimpleHasher");
   settings.setValue(GEOMETRY, saveGeometry());
 
   if(m_mode == Mode::GENERATE)

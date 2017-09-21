@@ -32,7 +32,7 @@ The following libraries are required:
 * [Qt opensource framework](http://www.qt.io/).
 
 # Install
-The only current option is build from source as binaries are not provided. 
+Download and execute the latest installer from the [releases](https://github.com/FelixdelasPozas/SimpleHasher/releases) page.  
 
 # Screenshots
 Simple main dialog, showing the progress while computing the hashes of some files.
@@ -52,11 +52,13 @@ Configuration dialog
 
 **Status**: finished
 
+**License**: GNU General Public License 3
+
 **cloc statistics**
 
 | Language                     |files          |blank        |comment           |code    |
 |:-----------------------------|--------------:|------------:|-----------------:|-------:|
-| C++                          |   13          |  462        |    378           |  2040  |
+| C++                          |   13          |  463        |    378           |  2039  |
 | C/C++ Header                 |   12          |  199        |    493           |   383  |
-| CMake                        |    1          |   16        |     10           |    63  |
-| **Total**                    |   **26**      |  **677**    |   **881**        |**2486**|
+| CMake                        |    1          |   16        |     10           |    60  |
+| **Total**                    |   **26**      |  **678**    |   **881**        |**2482**|

@@ -21,7 +21,6 @@ find_package(Qt5 COMPONENTS Widgets Multimedia)
 #add_definitions(${Qt5Multimedia_DEFINITIONS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Multimedia_EXECUTABLE_COMPILE_FLAGS}")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   set(CORE_EXTERNAL_LIBS ${CORE_EXTERNAL_LIBS} ${QT_QTTEST_LIBRARY})
@@ -29,6 +28,7 @@ endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 if(DEFINED MINGW)
   configure_file("${PROJECT_SOURCE_DIR}/resources.rc.in" "${PROJECT_BINARY_DIR}/resources.rc")
+  configure_file("${PROJECT_SOURCE_DIR}/installer/script.iss.in" "${PROJECT_BINARY_DIR}/script.iss")
   set(CORE_SOURCES ${CORE_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/resources.rc)
   set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -o <OBJECT> -i <SOURCE>")
   enable_language(RC)
@@ -42,7 +42,7 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}  # For wrap/ui files
   )
 
-set(CMAKE_CXX_FLAGS " -Wall -Wno-deprecated -std=c++11 -mwindows")
+set(CMAKE_CXX_FLAGS " -Wall -Wno-deprecated -std=c++11 -mwindows -m64")
 
 # Add Qt Resource files
 qt5_add_resources(RESOURCES
@@ -79,9 +79,6 @@ set (CORE_SOURCES
 
 set(CORE_EXTERNAL_LIBS
   Qt5::Widgets
-  Qt5::Multimedia
-  ${LIBVORBIS_LIBRARIES}
-  ${LIBOGG_LIBRARY}
 )
 
 add_executable(SimpleHasher ${CORE_SOURCES})

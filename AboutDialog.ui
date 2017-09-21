@@ -100,7 +100,7 @@
          <item>
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Copyright (c) 2016 Félix de las Pozas Álvarez</string>
+            <string>Copyright (c) 2017 Félix de las Pozas Álvarez</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -218,7 +218,7 @@ Qt Framework</string>
             <item>
              <widget class="QLabel" name="label_27">
               <property name="text">
-               <string>version 5.5</string>
+               <string>version 5.9</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
