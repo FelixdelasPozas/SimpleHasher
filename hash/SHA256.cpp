@@ -35,16 +35,9 @@ static const unsigned long SHA256_CONSTANTS[64] =
 //----------------------------------------------------------------
 SHA256::SHA256()
 : SHA1{}
-, SHA256_A{0x6a09e667}
-, SHA256_B{0xbb67ae85}
-, SHA256_C{0x3c6ef372}
-, SHA256_D{0xa54ff53a}
-, SHA256_E{0x510e527f}
-, SHA256_F{0x9b05688c}
-, SHA256_G{0x1f83d9ab}
-, SHA256_H{0x5be0cd19}
 {
   // initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
@@ -135,4 +128,17 @@ void SHA256::process_block(const unsigned char* char_block)
   SHA256_F += f;
   SHA256_G += g;
   SHA256_H += h;
+}
+
+//----------------------------------------------------------------
+void SHA256::reset()
+{
+  SHA256_A = 0x6a09e667;
+  SHA256_B = 0xbb67ae85;
+  SHA256_C = 0x3c6ef372;
+  SHA256_D = 0xa54ff53a;
+  SHA256_E = 0x510e527f;
+  SHA256_F = 0x9b05688c;
+  SHA256_G = 0x1f83d9ab;
+  SHA256_H = 0x5be0cd19;
 }

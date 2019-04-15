@@ -48,16 +48,9 @@ static const unsigned long long SHA512_CONSTANTS[80] =
 //----------------------------------------------------------------
 SHA512::SHA512()
 : SHA384{}
-, SHA512_A{0x6A09E667F3BCC908LL}
-, SHA512_B{0xBB67AE8584CAA73BLL}
-, SHA512_C{0x3C6EF372FE94F82BLL}
-, SHA512_D{0xA54FF53A5F1D36F1LL}
-, SHA512_E{0x510E527FADE682D1LL}
-, SHA512_F{0x9B05688C2B3E6C1FLL}
-, SHA512_G{0x1F83D9ABFB41BD6BLL}
-, SHA512_H{0x5BE0CD19137E2179LL}
 {
   // Initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
@@ -151,4 +144,17 @@ void SHA512::process_block(const unsigned char* char_block)
   SHA512_F += f;
   SHA512_G += g;
   SHA512_H += h;
+}
+
+//----------------------------------------------------------------
+void SHA512::reset()
+{
+  SHA512_A = 0x6A09E667F3BCC908LL;
+  SHA512_B = 0xBB67AE8584CAA73BLL;
+  SHA512_C = 0x3C6EF372FE94F82BLL;
+  SHA512_D = 0xA54FF53A5F1D36F1LL;
+  SHA512_E = 0x510E527FADE682D1LL;
+  SHA512_F = 0x9B05688C2B3E6C1FLL;
+  SHA512_G = 0x1F83D9ABFB41BD6BLL;
+  SHA512_H = 0x5BE0CD19137E2179LL;
 }

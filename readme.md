@@ -37,7 +37,7 @@ Download and execute the latest installer from the [releases](https://github.com
 # Screenshots
 Simple main dialog, showing the progress while computing the hashes of some files.
 
-![maindialog](https://cloud.githubusercontent.com/assets/12167134/15993542/772c63ba-30e9-11e6-9190-eae0761fa95b.jpg)
+![maindialog](https://user-images.githubusercontent.com/12167134/56167612-ecaf5900-5fd8-11e9-9a3f-f90cf26c8b86.jpg)
 
 When checking hash files passed as a parameter the green means success (hashes match), red indicates errors (hashes don't match) and yellow indicates that the files were not found (so hashes can't be checked).
 
@@ -48,7 +48,7 @@ Configuration dialog
 ![configuration](https://cloud.githubusercontent.com/assets/12167134/15993540/76f68e16-30e9-11e6-852f-328f1455117a.jpg)
 
 # Repository information
-**Version**: 1.0.1
+**Version**: 1.1.0
 
 **Status**: finished
 
@@ -58,7 +58,7 @@ Configuration dialog
 
 | Language                     |files          |blank        |comment           |code    |
 |:-----------------------------|--------------:|------------:|-----------------:|-------:|
-| C++                          |   13          |  463        |    378           |  2039  |
-| C/C++ Header                 |   12          |  199        |    493           |   383  |
-| CMake                        |    1          |   16        |     10           |    60  |
-| **Total**                    |   **26**      |  **678**    |   **881**        |**2482**|
+| C++                          |   13          |  494        |    395           |  2209  |
+| C/C++ Header                 |   12          |  228        |    535           |   472  |
+| CMake                        |    1          |   16        |     10           |    61  |
+| **Total**                    |   **26**      |  **738**    |   **940**        |**2742**|

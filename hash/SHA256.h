@@ -47,6 +47,8 @@ class SHA256
     virtual const QString name() const override
     { return QString("SHA-256"); }
 
+    virtual void reset() override;
+
   private:
     virtual void process_block(const unsigned char *char_block) override;
 

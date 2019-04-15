@@ -216,7 +216,7 @@ Qt Framework</string>
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="label_27">
+             <widget class="QLabel" name="m_qtVersion">
               <property name="text">
                <string>version 5.9</string>
               </property>

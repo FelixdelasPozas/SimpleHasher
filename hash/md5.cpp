@@ -20,8 +20,10 @@
 // Project
 #include <hash/MD5.h>
 
+// C++
+#include <cstring>
+
 // Qt
-#include <QByteArray>
 #include <QString>
 
 /* MD5 table : additive constants, abs(sin(j+1)) 0 =< j =< 63 */
@@ -58,34 +60,21 @@ static const unsigned int MD5_SHIFTS[64] =
 //----------------------------------------------------------------
 MD5::MD5()
 : Hash{}
-, A{0x67452301}
-, B{0xefcdab89}
-, C{0x98badcfe}
-, D{0x10325476}
 {
   // initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
-void MD5::update(QFile &file)
+const int MD5::blockSize() const
 {
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
+  return 64;
+}
 
-  while(fileSize != message_length)
-  {
-    auto block = file.read(64);
-    message_length += block.length();
-    update(block, message_length * 8);
-
-    // last block needs to be processed
-    if((fileSize == message_length) && (block.size() == 64))
-    {
-      update(QByteArray(), message_length * 8);
-    }
-  }
-
-  emit finished();
+//----------------------------------------------------------------
+const int MD5::bitsPerUnit() const
+{
+  return 8;
 }
 
 //----------------------------------------------------------------
@@ -100,7 +89,7 @@ void MD5::update(const QByteArray &buffer, const unsigned long long message_leng
   }
 
   QByteArray finalBuffer{64,0};
-  memcpy(finalBuffer.data(), buffer.constData(), length);
+  std::memcpy(finalBuffer.data(), buffer.constData(), length);
   finalBuffer[length++] = 0x80;
 
   /* if length < 55 there is space for message length, we process 1 block */
@@ -108,7 +97,7 @@ void MD5::update(const QByteArray &buffer, const unsigned long long message_leng
   if (length >= 56)
   {
       process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-      memset(finalBuffer.data(), 0x00, 64);
+      std::memset(finalBuffer.data(), 0x00, 64);
   }
 
   for (int loop = 0; loop < 8; loop++)
@@ -221,4 +210,13 @@ void MD5::process_block(const unsigned char *char_block)
   B += b;
   C += c;
   D += d;
+}
+
+//----------------------------------------------------------------
+void MD5::reset()
+{
+  A = 0x67452301;
+  B = 0xefcdab89;
+  C = 0x98badcfe;
+  D = 0x10325476;
 }

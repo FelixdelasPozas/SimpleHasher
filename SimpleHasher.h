@@ -23,6 +23,9 @@
 // Qt
 #include "ui_SimpleHasher.h"
 #include <QMainWindow>
+#include <QtWinExtras/QWinTaskbarButton>
+#include <QStyledItemDelegate>
+#include <QTableWidgetItem>
 
 // C++
 #include <memory>
@@ -32,6 +35,9 @@
 
 class ComputerThread;
 class QPoint;
+class QPainter;
+class QStyleOptionViewItem;
+class QModelItem;
 
 /** \class SimpleHasher
  * \brief Application main window class.
@@ -55,6 +61,10 @@ class SimpleHasher
      *
      */
     virtual ~SimpleHasher();
+
+  protected:
+    virtual void showEvent(QShowEvent *event) override;
+    virtual void closeEvent(QCloseEvent *event) override;
 
   private slots:
     /** \brief Shows the about dialog.
@@ -104,6 +114,14 @@ class SimpleHasher
      *
      */
     void onHashComputed(const QString &filename, const Hash *hash);
+
+    /** \brief Updates the correspondent item in the table with the progress value.
+     * \param[in] filename filename of the computed hash.
+     * \param[in] hash hash object pointer.
+     * \param[in] value Progress value in [0,100]
+     *
+     */
+    void onHashUpdated(const QString &filename, const Hash *hash, const int value);
 
     /** \brief Copies the values of the selected hashes to the clipboard.
      *
@@ -192,16 +210,69 @@ class SimpleHasher
      */
     void addFilesToTable(const QStringList &files);
 
-    Mode                                   m_mode;       /** operation mode.                                                 */
-    QStringList                            m_files;      /** files in the table.                                             */
-    std::shared_ptr<ComputerThread>        m_thread;     /** computer thread.                                                */
-    bool                                   m_spaces;     /** true to divide the hashes with spaces.                          */
-    bool                                   m_oneline;    /** true to show the long hashes in one line.                       */
-    bool                                   m_uppercase;  /** true to show the hashes in uppercase.                           */
-    int                                    m_threadsNum; /** number of simultaneous threads to compute hashes.               */
-    QMap<QString, QMap<QString, HashSPtr>> m_results;    /** maps files -> computed hashes.                                  */
-    QStringList                            m_headers;    /** list of column strings, just to avoid computing over and over.. */
-    std::shared_ptr<QMenu>                 m_menu;       /** contextual menu for the table.                                  */
+    Mode                                   m_mode;          /** operation mode.                                                 */
+    QStringList                            m_files;         /** files in the table.                                             */
+    std::shared_ptr<ComputerThread>        m_thread;        /** computer thread.                                                */
+    bool                                   m_spaces;        /** true to divide the hashes with spaces.                          */
+    bool                                   m_oneline;       /** true to show the long hashes in one line.                       */
+    bool                                   m_uppercase;     /** true to show the hashes in uppercase.                           */
+    int                                    m_threadsNum;    /** number of simultaneous threads to compute hashes.               */
+    QMap<QString, QMap<QString, HashSPtr>> m_results;       /** maps files -> computed hashes.                                  */
+    QStringList                            m_headers;       /** list of column strings, just to avoid computing over and over.. */
+    std::shared_ptr<QMenu>                 m_menu;          /** contextual menu for the table.                                  */
+    QWinTaskbarButton                     *m_taskBarButton; /** task bar button widget.                                         */
+};
+
+/** \class HashCellItem
+ * \brief Custom item for the hash table.
+ *
+ */
+class HashCellItem
+: public QTableWidgetItem
+{
+  public:
+    explicit HashCellItem(int type = Type)
+    : QTableWidgetItem(type)
+    {};
+
+    explicit HashCellItem(const QString &text, int type = Type)
+    : QTableWidgetItem(text, type)
+    {};
+
+    explicit HashCellItem(const QIcon &icon, const QString &text, int type = Type)
+    : QTableWidgetItem(icon, text, type)
+    {};
+
+    inline void setProgress(int value)
+    {
+      this->setData(Qt::UserRole, value);
+    }
+};
+
+/** \class HashCellDelegate
+ * \brief Custom item delegate to draw the progress of the hash computation over the item.
+ *
+ */
+class HashCellDelegate
+: public QStyledItemDelegate
+{
+    Q_OBJECT
+  public:
+    /** \brief HashCellDelegate class constructor.
+     * \param[in] parent Raw pointer of the widget parent of this delegate.
+     *
+     */
+    explicit HashCellDelegate(QWidget *parent = nullptr)
+    : QStyledItemDelegate{parent}
+    {};
+
+    /** \brief HashCellDelegate class virtual destructor.
+     *
+     */
+    virtual ~HashCellDelegate()
+    {};
+
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 };
 
 #endif // SIMPLEHASHER_H_

@@ -29,7 +29,7 @@
 //----------------------------------------------------------------
 ComputerThread::ComputerThread(QMap<QString, HashList> computations, const int threadsNum, QObject *parent)
 : QThread       {parent}
-, m_computations{computations}
+, m_computations(computations)
 , m_abort       {false}
 , m_hashNumber  {0}
 , m_progress    {0}
@@ -59,18 +59,13 @@ QMap<QString, HashList> ComputerThread::getResults() const
 void ComputerThread::abort()
 {
   m_abort = true;
+  m_condition.wakeAll();
 }
 
 //----------------------------------------------------------------
 void ComputerThread::onHashComputed(const QString &filename, const Hash *hash)
 {
   QMutexLocker lock(&m_progressMutex);
-
-  emit hashComputed(filename, hash);
-
-  ++m_progress;
-
-  emit progress((100*m_progress)/m_hashNumber);
 
   for(auto hashSPtr: m_computations[filename])
   {
@@ -81,15 +76,28 @@ void ComputerThread::onHashComputed(const QString &filename, const Hash *hash)
     }
   }
 
-  --m_threadsNum;
-  m_condition.wakeAll();
+  emit hashComputed(filename, hash);
+}
+
+//----------------------------------------------------------------
+void ComputerThread::onProgressSignaled()
+{
+  QMutexLocker lock(&m_progressMutex);
+
+  if(m_hashNumber > 0)
+  {
+    auto progressValue = m_progress * 100;
+
+    std::for_each(m_threads.constBegin(), m_threads.constEnd(), [&progressValue](const std::shared_ptr<HashChecker> task) { if(task) progressValue += task->progress();});
+
+    emit progress(progressValue/m_hashNumber);
+  }
 }
 
 //----------------------------------------------------------------
 void ComputerThread::run()
 {
   QString fileErrors;
-  QList<std::shared_ptr<HashChecker>> threads;
 
   for(int i = 0; i < m_computations.keys().size() && !m_abort; ++i)
   {
@@ -97,6 +105,16 @@ void ComputerThread::run()
 
     for(auto hash: m_computations[filename])
     {
+      // wait if we have reached the maximum number of threads.
+      if(m_threadsNum == m_maxThreads)
+      {
+        m_mutex.lock();
+        m_condition.wait(&m_mutex);
+        m_mutex.unlock();
+      }
+
+      if(m_abort) break;
+
       auto file = new QFile{filename};
 
       if(!file->open(QIODevice::ReadOnly) || !file->seek(0))
@@ -108,30 +126,35 @@ void ComputerThread::run()
 
       auto runnable = std::make_shared<HashChecker>(hash, file);
       connect(runnable.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
+      connect(runnable.get(), SIGNAL(hashUpdated(const QString &, const Hash *, const int)), this, SIGNAL(hashUpdated(const QString &, const Hash *, const int)));
+      connect(runnable.get(), SIGNAL(progressed()), this, SLOT(onProgressSignaled()));
+      connect(runnable.get(), SIGNAL(finished()), this, SLOT(onThreadFinished()));
 
-      threads << runnable;
-
-      // wait if we have reached the maximum number of threads.
-      if(m_threadsNum == m_maxThreads)
       {
-        m_mutex.lock();
-        m_condition.wait(&m_mutex);
-        m_mutex.unlock();
-      }
+        QMutexLocker lock(&m_progressMutex);
 
-      ++m_threadsNum;
+        ++m_threadsNum;
+        m_threads << runnable;
+      }
       runnable->start();
     }
   }
 
-  QApplication::processEvents();
-
-  for(auto thread: threads)
+  while(!m_threads.isEmpty() && !m_abort)
   {
-    // waits for all threads to finish before ending.
-    thread->wait();
+    m_mutex.lock();
+    m_condition.wait(&m_mutex);
+    m_mutex.unlock();
   }
-  threads.clear();
+
+  if(m_abort)
+  {
+    QMutexLocker lock(&m_progressMutex);
+
+    std::for_each(m_threads.begin(), m_threads.end(), [](std::shared_ptr<HashChecker> thread) { thread->abort(); });
+  }
+
+  QApplication::processEvents();
 
   if(!fileErrors.isEmpty())
   {
@@ -145,4 +168,33 @@ void ComputerThread::run()
 
     dialog.exec();
   }
+}
+
+//----------------------------------------------------------------
+void ComputerThread::onThreadFinished()
+{
+  QMutexLocker lock(&m_progressMutex);
+
+  --m_threadsNum;
+  ++m_progress;
+
+  auto senderThread = qobject_cast<HashChecker *>(sender());
+  if(senderThread)
+  {
+    disconnect(senderThread, SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
+    disconnect(senderThread, SIGNAL(hashUpdated(const QString &, const Hash *, const int)), this, SIGNAL(hashUpdated(const QString &, const Hash *, const int)));
+    disconnect(senderThread, SIGNAL(progressed()), this, SLOT(onProgressSignaled()));
+    disconnect(senderThread, SIGNAL(finished()), this, SLOT(onThreadFinished()));
+
+    for(auto thread: m_threads)
+    {
+      if(thread.get() == senderThread)
+      {
+        m_threads.removeOne(thread);
+        break;
+      }
+    }
+  }
+
+  m_condition.wakeAll();
 }

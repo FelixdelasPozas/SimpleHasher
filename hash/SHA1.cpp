@@ -20,38 +20,28 @@
 // Project
 #include <hash/SHA1.h>
 
+// C++
+#include <cstring>
+#include <iostream>
+
 //----------------------------------------------------------------
 SHA1::SHA1()
 : Hash{}
-, SHA1_A{0x67452301}
-, SHA1_B{0xEFCDAB89}
-, SHA1_C{0x98BADCFE}
-, SHA1_D{0x10325476}
-, SHA1_E{0xC3D2E1F0}
 {
   // initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
-void SHA1::update(QFile &file)
+const int SHA1::blockSize() const
 {
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
+  return 64;
+}
 
-  while(fileSize != message_length)
-  {
-    auto block = file.read(64);
-    message_length += block.length();
-    update(block, message_length * 8);
-
-    // last block needs to be processed
-    if((fileSize == message_length) && (block.size() == 64))
-    {
-      update(QByteArray(), message_length * 8);
-    }
-  }
-
-  emit finished();
+//----------------------------------------------------------------
+const int SHA1::bitsPerUnit() const
+{
+  return 8;
 }
 
 //----------------------------------------------------------------
@@ -66,7 +56,7 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
   }
 
   QByteArray finalBuffer{64,0};
-  memcpy(finalBuffer.data(), buffer.constData(), length);
+  std::memcpy(finalBuffer.data(), buffer.constData(), length);
   finalBuffer[length++] = 0x80;
 
   // if length < 55 there is space for message length, we process 1 block
@@ -74,7 +64,7 @@ void SHA1::update(const QByteArray& buffer, const unsigned long long message_len
   if (length >= 56)
   {
     process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-    memset(finalBuffer.data(), 0x00, 64);
+    std::memset(finalBuffer.data(), 0x00, 64);
   }
 
   for (int loop = 0; loop < 8; loop++)
@@ -174,4 +164,14 @@ void SHA1::process_block(const unsigned char *char_block)
   SHA1_C += c;
   SHA1_D += d;
   SHA1_E += e;
+}
+
+//----------------------------------------------------------------
+void SHA1::reset()
+{
+  SHA1_A = 0x67452301;
+  SHA1_B = 0xEFCDAB89;
+  SHA1_C = 0x98BADCFE;
+  SHA1_D = 0x10325476;
+  SHA1_E = 0xC3D2E1F0;
 }

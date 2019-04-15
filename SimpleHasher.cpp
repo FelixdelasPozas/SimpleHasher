@@ -38,8 +38,12 @@
 #include <QVariant>
 #include <QMessageBox>
 #include <QMenu>
+#include <QPainter>
 #include <QClipboard>
 #include <QThreadPool>
+#include <QtWinExtras/QWinTaskbarProgress>
+#include <QModelIndex>
+#include <QObject>
 #include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
@@ -64,13 +68,14 @@ const QString NOT_COMPUTED_YET     = QString("Hash not checked yet.");
 
 //----------------------------------------------------------------
 SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::WindowFlags flags)
-: QMainWindow{parent, flags}
-, m_mode     {files.isEmpty() ? Mode::GENERATE : Mode::CHECK}
-, m_files    {files}
-, m_thread   {nullptr}
-, m_spaces   {true}
-, m_oneline  {false}
-, m_uppercase{false}
+: QMainWindow    (parent, flags)
+, m_mode         {files.isEmpty() ? Mode::GENERATE : Mode::CHECK}
+, m_files        {files}
+, m_thread       {nullptr}
+, m_spaces       {true}
+, m_oneline      {false}
+, m_uppercase    {false}
+, m_taskBarButton{nullptr}
 {
   qRegisterMetaType<const Hash *>("Hash");
   qRegisterMetaType<QVector<int>>("Point");
@@ -90,6 +95,7 @@ SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::Window
   m_hashTable->horizontalHeader()->setSectionsClickable(false);
   m_hashTable->horizontalHeader()->setDefaultAlignment(Qt::AlignCenter);
   m_hashTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  m_hashTable->setItemDelegate(new HashCellDelegate(m_hashTable));
 
   loadSettings();
 
@@ -154,6 +160,7 @@ void SimpleHasher::hideProgress()
   m_hashGroup->setEnabled(true);
   m_progress->hide();
   m_cancel->hide();
+  if(m_taskBarButton) m_taskBarButton->progress()->setVisible(false);
   m_cancel->setEnabled(true);
 }
 
@@ -163,6 +170,8 @@ void SimpleHasher::showProgress()
   m_hashGroup->setEnabled(false);
   m_progress->setValue(0);
   m_progress->show();
+  if(m_taskBarButton) m_taskBarButton->progress()->setVisible(true);
+  if(m_taskBarButton) m_taskBarButton->progress()->setValue(0);
   m_cancel->show();
 }
 
@@ -243,10 +252,15 @@ void SimpleHasher::onComputePressed()
         for(auto hash: hashes)
         {
           auto column = m_headers.indexOf(hash->name());
-          auto item   = m_hashTable->item(row, column);
+          auto item   = dynamic_cast<HashCellItem *>(m_hashTable->item(row, column));
+          item->setProgress(0);
+          item->setData(Qt::UserRole+1, false);
+          item->setBackground(palette().background());
+
           if(item->text() == NOT_FOUND || (m_hashTable->item(row,0)->toolTip() == FILE_NOT_FOUND))
           {
             toRemove << hash;
+            item->setBackgroundColor(QColor(200,200,50));
           }
         }
 
@@ -266,6 +280,7 @@ void SimpleHasher::onComputePressed()
     }
   }
 
+  if(m_thread) onCancelPressed();
 
   if(!computations.empty())
   {
@@ -273,8 +288,10 @@ void SimpleHasher::onComputePressed()
     showProgress();
 
     connect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
+    if(m_taskBarButton) connect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
     connect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     connect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)), Qt::DirectConnection);
+    connect(m_thread.get(), SIGNAL(hashUpdated(const QString &, const Hash *, const int)), this, SLOT(onHashUpdated(const QString &, const Hash *, const int)), Qt::DirectConnection);
 
     m_thread->start();
   }
@@ -283,8 +300,46 @@ void SimpleHasher::onComputePressed()
 //----------------------------------------------------------------
 void SimpleHasher::onCancelPressed()
 {
-  m_cancel->setEnabled(false);
-  m_thread->abort();
+  if(m_thread)
+  {
+    m_cancel->setEnabled(false);
+    m_thread->abort();
+    m_thread->wait();
+
+    for(int row = 0; row < m_files.size(); ++row)
+    {
+      for(int column = 1; column < m_headers.size(); ++column)
+      {
+        auto item = dynamic_cast<HashCellItem *>(m_hashTable->item(row, column));
+        if(item)
+        {
+          bool ok{false};
+          auto value = item->data(Qt::UserRole).toInt(&ok);
+          item->setProgress(0);
+
+          if(ok && value != 0)
+          {
+            if(value < 100)
+            {
+              item->setData(Qt::UserRole+1, false);
+              item->setToolTip(tr("Hash computation cancelled."));
+
+              if(m_mode == Mode::CHECK)
+              {
+                item->setBackgroundColor(QColor{200,50,50});
+              }
+              else
+              {
+                item->setBackground(palette().background());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    m_hashTable->update();
+  }
 }
 
 //----------------------------------------------------------------
@@ -462,7 +517,9 @@ void SimpleHasher::onCheckBoxStateChanged()
         enableSave = true;
       }
 
-      auto item = new QTableWidgetItem{text};
+      auto item = new HashCellItem{text};
+      item->setProgress(0);
+      item->setData(Qt::UserRole+1, false);
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
       item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
@@ -481,34 +538,38 @@ void SimpleHasher::onCheckBoxStateChanged()
 //----------------------------------------------------------------
 void SimpleHasher::onComputationFinished()
 {
-  disconnect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
-  disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
-  disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
-
-  if(m_mode == Mode::GENERATE)
+  if(m_thread)
   {
-    auto results = m_thread->getResults();
+    disconnect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
+    if(m_taskBarButton) disconnect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
+    disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
+    disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
 
-    for(int i = 0; i < m_files.size(); ++i)
+    if(m_mode == Mode::GENERATE)
     {
-      for(auto hash: results[m_files.at(i)])
+      auto results = m_thread->getResults();
+
+      for(int i = 0; i < m_files.size(); ++i)
       {
-        m_results[m_files.at(i)][hash->name()] = hash;
+        for(auto hash: results[m_files.at(i)])
+        {
+          m_results[m_files.at(i)][hash->name()] = hash;
+        }
       }
-    }
 
-    for(auto list: results.values())
-    {
-      list.clear();
-    }
+      for(auto list: results.values())
+      {
+        list.clear();
+      }
 
-    m_thread = nullptr;
-    for(int i = 0; i < m_hashTable->columnCount(); ++i)
-    {
-      m_hashTable->resizeColumnToContents(i);
-    }
+      m_thread = nullptr;
+      for(int i = 0; i < m_hashTable->columnCount(); ++i)
+      {
+        m_hashTable->resizeColumnToContents(i);
+      }
 
-    m_save->setEnabled(true);
+      m_save->setEnabled(true);
+    }
   }
 
   hideProgress();
@@ -591,6 +652,7 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
   auto item     = m_hashTable->item(row, column);
   auto itemHash = item->text().remove('\n').remove(' ').toLower();
   auto text     = hash->value();
+  item->setData(Qt::UserRole, 100);
 
   if(m_mode == Mode::GENERATE)
   {
@@ -599,6 +661,8 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
     if(m_uppercase) text = text.toUpper();
 
     item->setText(text);
+    item->setData(Qt::UserRole+1, true);
+    item->setToolTip(tr("Hash computed."));
 
     m_hashTable->resizeColumnToContents(column);
   }
@@ -612,11 +676,13 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
 
     if(itemHash == value)
     {
+      item->setData(Qt::UserRole+1, true);
       item->setBackgroundColor(QColor(50,200,50));
       item->setToolTip(tr("Correct Hash."));
     }
     else
     {
+      item->setData(Qt::UserRole+1, false);
       item->setBackgroundColor(QColor(200, 50, 50));
       item->setToolTip(tr("Incorrect Hash."));
     }
@@ -833,7 +899,7 @@ const QString SimpleHasher::guessHash(QFile &file)
   QString result{"Unknown"};
 
   file.seek(0);
-  auto data = file.read(150); // a bit more than the largest of the hashes (512 bits/4 char bits = 128).
+  const auto data = file.readLine(150); // a bit more than the largest of the hashes (512 bits/4 char bits = 128).
 
   if(data.length() > 32)
   {
@@ -871,7 +937,7 @@ void SimpleHasher::loadInformation()
   parameterFiles.detach();
   m_files.clear();
 
-  this->blockSignals(true);
+  blockSignals(true);
   QList<QCheckBox *> checked;
   for(auto check: {m_md5, m_sha1, m_sha224, m_sha256, m_sha256, m_sha384, m_sha512, m_tiger})
   {
@@ -885,85 +951,81 @@ void SimpleHasher::loadInformation()
   for(auto filename: parameterFiles)
   {
     QFile file{filename};
-
-    if(!file.exists() || !file.open(QIODevice::ReadOnly))
+    if(!file.exists() || !file.open(QIODevice::ReadOnly|QIODevice::Text))
     {
       fileErrors += tr("%1 error: %2\n").arg(filename).arg(file.errorString());
       continue;
     }
 
-    auto path = QFileInfo{filename}.absoluteDir();
-    auto hash = guessHash(file);
+    const auto hash = guessHash(file);
+    file.close();
 
-    if(hash == "Unknown")
+    if(hash.compare("Unknown") == 0)
     {
       fileErrors += tr("%1 error: %2\n").arg(filename).arg("Unknown hash");
-      file.close();
-      continue;
     }
 
-    if (hash == "MD5")
+    if (hash.compare("MD5") == 0)
     {
       m_md5->setChecked(true);
       parameterHashLengths << 32;
     }
     else
-      if (hash == "SHA-1")
+      if (hash.compare("SHA-1") == 0)
       {
         m_sha1->setChecked(true);
         parameterHashLengths << 40;
       }
       else
-        if (hash == "SHA-224")
+        if (hash.compare("SHA-224") == 0)
         {
           m_sha224->setChecked(true);
           parameterHashLengths << 56;
         }
         else
-          if (hash == "SHA-256")
+          if (hash.compare("SHA-256") == 0)
           {
             m_sha256->setChecked(true);
             parameterHashLengths << 64;
           }
           else
-            if (hash == "SHA-384")
+            if (hash.compare("SHA-384") == 0)
             {
               m_sha384->setChecked(true);
               parameterHashLengths << 96;
             }
             else
-              if (hash == "SHA-512")
+              if (hash.compare("SHA-512") == 0)
               {
                 m_sha512->setChecked(true);
                 parameterHashLengths << 128;
               }
               else
-                if (hash == "Tiger")
+                if (hash.compare("Tiger") == 0)
                 {
                   m_tiger->setChecked(true);
                   parameterHashLengths << 48;
                 }
                 else
-                  Q_ASSERT(false);
+                  parameterHashLengths << 0;
 
     hashNameList << hash;
   }
 
-  this->blockSignals(false);
+  blockSignals(false);
 
   onCheckBoxStateChanged();
 
   for(auto filename: parameterFiles)
   {
     QFile file{filename};
-    auto path = QFileInfo{filename}.absoluteDir();
-
-    if(!file.exists() || !file.open(QIODevice::ReadOnly))
+    if(!file.exists() || !file.open(QIODevice::ReadOnly|QIODevice::Text) || (hashNameList.at(parameterFiles.indexOf(filename)).compare("Unknown") == 0))
     {
       // reported before.
       continue;
     }
 
+    const auto path = QFileInfo{filename}.absoluteDir();
     QStringList files;
     int begin = 0;
     auto data = file.readAll();
@@ -978,10 +1040,7 @@ void SimpleHasher::loadInformation()
 
         auto fileName = data.mid(begin, end-begin);
 
-        if(path.exists(fileName))
-        {
-          files << path.absoluteFilePath(fileName);
-        }
+        files << path.absoluteFilePath(fileName);
 
         begin = end;
       }
@@ -994,9 +1053,9 @@ void SimpleHasher::loadInformation()
       while(!line.isEmpty())
       {
         auto lineParts = QString(line).split(' ');
-        if(lineParts.size() == 2 && path.exists(lineParts[1]))
+        if(lineParts.size() == 2)
         {
-          files << files << path.absoluteFilePath(lineParts[1]);
+          files << path.absoluteFilePath(lineParts[1]);
         }
 
         line = file.readLine();
@@ -1147,7 +1206,9 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
     for(int column = 1; column <= columnCount; ++column)
     {
       auto text = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
-      auto item = new QTableWidgetItem(text);
+      auto item = new HashCellItem{text};
+      item->setProgress(0);
+      item->setData(Qt::UserRole+1, false);
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
       item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
@@ -1167,4 +1228,90 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
 
   m_removeFile->setEnabled(enabled);
   m_compute->setEnabled(enabled);
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::showEvent(QShowEvent* event)
+{
+  QMainWindow::showEvent(event);
+
+  m_taskBarButton = new QWinTaskbarButton(this);
+  m_taskBarButton->setWindow(this->windowHandle());
+  m_taskBarButton->progress()->setRange(0,100);
+  m_taskBarButton->progress()->setVisible(false);
+
+  if(m_thread)
+  {
+    m_taskBarButton->progress()->setVisible(true);
+    connect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
+  }
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::closeEvent(QCloseEvent* event)
+{
+  if(m_thread && m_thread->isRunning())
+  {
+    onCancelPressed();
+  }
+}
+
+//----------------------------------------------------------------
+void HashCellDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+  bool ok{false};
+  auto progressValue = index.data(Qt::UserRole).toInt(&ok);
+
+  if(!ok)
+  {
+    QStyledItemDelegate::paint(painter, option, index);
+  }
+  else
+  {
+    painter->save();
+
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+
+    QBrush brush{QColor{210,210,210}};
+    if(progressValue == 0 || progressValue >= 100)
+    {
+      brush = opt.backgroundBrush;
+
+      painter->setRenderHint(QPainter::Antialiasing, true);
+      painter->fillRect(option.rect, brush);
+    }
+    else
+    {
+      QStyleOptionProgressBar progressBarOption;
+      progressBarOption.rect = option.rect;
+      progressBarOption.minimum = 0;
+      progressBarOption.maximum = 100;
+      progressBarOption.textAlignment = Qt::AlignCenter;
+      progressBarOption.progress = progressValue;
+      progressBarOption.textVisible = false;
+
+      QApplication::style()->drawControl(QStyle::CE_ProgressBar, &progressBarOption, painter);
+
+      if(progressValue < 50) painter->setPen(Qt::black);
+      else                   painter->setPen(Qt::white);
+    }
+
+    painter->setFont(opt.font);
+    painter->drawText(option.rect, Qt::AlignCenter, index.data(Qt::DisplayRole).toString());
+
+    painter->restore();
+  }
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::onHashUpdated(const QString& filename, const Hash* hash, const int value)
+{
+  if(value != 100)
+  {
+    auto row      = m_files.indexOf(filename);
+    auto column   = m_headers.indexOf(hash->name());
+    auto item     = dynamic_cast<HashCellItem *>(m_hashTable->item(row, column));
+    if(item) item->setProgress(value);
+  }
 }

@@ -20,6 +20,9 @@
 // Project
 #include <hash/SHA384.h>
 
+// C++
+#include <cstring>
+
 /** SHA-384 Constants */
 static const unsigned long long SHA384_CONSTANTS[80] =
 {
@@ -48,38 +51,21 @@ static const unsigned long long SHA384_CONSTANTS[80] =
 //----------------------------------------------------------------
 SHA384::SHA384()
 : Hash{}
-, SHA384_A{0xCBBB9D5DC1059ED8LL}
-, SHA384_B{0x629A292A367CD507LL}
-, SHA384_C{0x9159015A3070DD17LL}
-, SHA384_D{0x152FECD8F70E5939LL}
-, SHA384_E{0x67332667FFC00B31LL}
-, SHA384_F{0x8EB44A8768581511LL}
-, SHA384_G{0xDB0C2E0D64F98FA7LL}
-, SHA384_H{0x47B5481DBEFA4FA4LL}
 {
   // Initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
-void SHA384::update(QFile &file)
+const int SHA384::blockSize() const
 {
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
+  return 128;
+}
 
-  while(fileSize != message_length)
-  {
-    auto block = file.read(128);
-    message_length += block.length();
-    update(block, message_length * 8);
-
-    // last block needs to be processed
-    if((fileSize == message_length) && (block.size() == 128))
-    {
-      update(QByteArray(), message_length * 8);
-    }
-  }
-
-  emit finished();
+//----------------------------------------------------------------
+const int SHA384::bitsPerUnit() const
+{
+  return 8;
 }
 
 //----------------------------------------------------------------
@@ -94,15 +80,15 @@ void SHA384::update(const QByteArray& buffer, const unsigned long long message_l
   }
 
   QByteArray finalBuffer{128,0};
-  memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
+  std::memcpy(finalBuffer.data(), buffer.constData(), buffer.length());
   finalBuffer[length++] = 0x80;
 
-  // if length < 55 there is space for message length, we process 1 block
+  // if length < 112 there is space for message length, we process 1 block
   // if not, we need to process two blocks
   if (length >= 112)
   {
     process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-    memset(finalBuffer.data(), 0x00, 128);
+    std::memset(finalBuffer.data(), 0x00, 128);
   }
 
   for (unsigned int loop = 0; loop < 8; loop++)
@@ -203,4 +189,17 @@ void SHA384::process_block(const unsigned char* char_block)
   SHA384_F += f;
   SHA384_G += g;
   SHA384_H += h;
+}
+
+//----------------------------------------------------------------
+void SHA384::reset()
+{
+  SHA384_A = 0xCBBB9D5DC1059ED8LL;
+  SHA384_B = 0x629A292A367CD507LL;
+  SHA384_C = 0x9159015A3070DD17LL;
+  SHA384_D = 0x152FECD8F70E5939LL;
+  SHA384_E = 0x67332667FFC00B31LL;
+  SHA384_F = 0x8EB44A8768581511LL;
+  SHA384_G = 0xDB0C2E0D64F98FA7LL;
+  SHA384_H = 0x47B5481DBEFA4FA4LL;
 }

@@ -42,15 +42,18 @@ class SHA1
     virtual ~SHA1()
     {};
 
-    virtual void update(QFile &file);
+    virtual const int blockSize() const;
 
-    virtual void update(const QByteArray &buffer, const unsigned long long message_length);
+    virtual const int bitsPerUnit() const;
 
     virtual const QString value() const;
 
     virtual const QString name() const
     { return QString("SHA-1"); }
 
+    virtual void reset();
+
+    virtual void update(const QByteArray &buffer, const unsigned long long message_length);
   private:
     /** \brief Updates the hash with the char block passed as argument.
      * \param[in] char_block data buffer at maximum 64 bytes in size.

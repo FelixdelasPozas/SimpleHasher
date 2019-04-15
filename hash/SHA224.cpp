@@ -36,16 +36,9 @@ static const unsigned long SHA224_CONSTANTS[64] =
 //----------------------------------------------------------------
 SHA224::SHA224()
 : SHA1{}
-, SHA224_A{0xc1059ed8}
-, SHA224_B{0x367cd507}
-, SHA224_C{0x3070dd17}
-, SHA224_D{0xf70e5939}
-, SHA224_E{0xffc00b31}
-, SHA224_F{0x68581511}
-, SHA224_G{0x64f98fa7}
-, SHA224_H{0xbefa4fa4}
 {
   // initialize chaining variables.
+  reset();
 }
 
 //----------------------------------------------------------------
@@ -134,4 +127,17 @@ void SHA224::process_block(const unsigned char *char_block)
   SHA224_F += f;
   SHA224_G += g;
   SHA224_H += h;
+}
+
+//----------------------------------------------------------------
+void SHA224::reset()
+{
+  SHA224_A = 0xc1059ed8;
+  SHA224_B = 0x367cd507;
+  SHA224_C = 0x3070dd17;
+  SHA224_D = 0xf70e5939;
+  SHA224_E = 0xffc00b31;
+  SHA224_F = 0x68581511;
+  SHA224_G = 0x64f98fa7;
+  SHA224_H = 0xbefa4fa4;
 }

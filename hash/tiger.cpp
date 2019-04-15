@@ -20,6 +20,9 @@
 // Project
 #include <hash/Tiger.h>
 
+// C++
+#include <cstring>
+
 // 512 bits (64 chars) "random value" for the generation of the s-boxes.
 QString Tiger::RANDOM_VALUE = QString("Tiger - A Fast New Hash Function, by Ross Anderson and Eli Biham");
 
@@ -35,9 +38,7 @@ Tiger::Tiger()
 : Hash{}
 {
   // initialize chaining variables
-  hash.a = 0x0123456789abcdefULL;
-  hash.b = 0xfedcba9876543210ULL;
-  hash.c = 0xf096a5b4c3b2e187ULL;
+  reset();
 
   if(!TABLE_AVAILABLE)
   {
@@ -54,25 +55,15 @@ Tiger::Tiger()
 }
 
 //----------------------------------------------------------------
-void Tiger::update(QFile &file)
+const int Tiger::blockSize() const
 {
-  unsigned long long message_length = 0;
-  const unsigned long long fileSize = file.size();
+  return 64;
+}
 
-  while(fileSize != message_length)
-  {
-    auto block = file.read(64);
-    message_length += block.length();
-    update(block, message_length);
-
-    // last block needs to be processed
-    if((fileSize == message_length) && (block.size() == 64))
-    {
-      update(QByteArray(), message_length);
-    }
-  }
-
-  emit finished();
+//----------------------------------------------------------------
+const int Tiger::bitsPerUnit() const
+{
+  return 1;
 }
 
 //----------------------------------------------------------------
@@ -89,7 +80,7 @@ void Tiger::update(const QByteArray& buffer, const unsigned long long message_le
   QByteArray finalBuffer{64,0};
 
   // copy the remaining bytes of the message to a temporal block
-  memcpy(finalBuffer.data(), buffer.constData(), length);
+  std::memcpy(finalBuffer.data(), buffer.constData(), length);
 
   // padding the message
   finalBuffer[length++] = 0x01;
@@ -98,7 +89,7 @@ void Tiger::update(const QByteArray& buffer, const unsigned long long message_le
   if(length > 56)
   {
     process_block(reinterpret_cast<const unsigned char *>(finalBuffer.constData()));
-    memset(finalBuffer.data(), 0x00, 64);
+    std::memset(finalBuffer.data(), 0x00, 64);
   }
 
   // insert message length at the end of block
@@ -244,4 +235,12 @@ void Tiger::generate_table(const unsigned char *message, const unsigned int pass
       }
     }
   }
+}
+
+//----------------------------------------------------------------
+void Tiger::reset()
+{
+  hash.a = 0x0123456789abcdefULL;
+  hash.b = 0xfedcba9876543210ULL;
+  hash.c = 0xf096a5b4c3b2e187ULL;
 }

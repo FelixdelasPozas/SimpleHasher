@@ -36,9 +36,7 @@ using HashList = QList<HashSPtr>;
  * \brief Base class that defines the basic hash algorithm methods.
  */
 class Hash
-: public QObject
 {
-    Q_OBJECT
   public:
     /** \brief Hash class constructor.
      *
@@ -51,18 +49,15 @@ class Hash
     virtual ~Hash()
     {};
 
-    /** \brief Updates the hash with the contents of the file.
-     * \param[in] file already opened file.
+    /** \brief Returns the size in bytes of the blocks that the hash processes.
      *
      */
-    virtual void update(QFile &file) = 0;
+    virtual const int blockSize() const = 0;
 
-    /** \brief Updated the hash with the contents of the buffer.
-     * \param[in] buffer data buffer.
-     * \param[in] message_length length of the message being hashed.
+    /** \brief Returns the size of the unit the hash works with. I.E. 8 bof byte and 1 for bit.
      *
      */
-    virtual void update(const QByteArray &buffer, const unsigned long long message_length) = 0;
+    virtual const int bitsPerUnit() const = 0;
 
     /** \brief Returns the hash value as a string.
      *
@@ -74,8 +69,17 @@ class Hash
      */
     virtual const QString name() const = 0;
 
-  signals:
-    void finished();
+    /** \brief Resets the hash internal values.
+     *
+     */
+    virtual void reset() = 0;
+
+    /** \brief Updated the hash with the contents of the buffer.
+     * \param[in] buffer data buffer.
+     * \param[in] message_length length of the message being hashed.
+     *
+     */
+    virtual void update(const QByteArray &buffer, const unsigned long long message_length) = 0;
 };
 
 #endif // HASH_H_
