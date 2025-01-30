@@ -32,7 +32,8 @@ The following libraries are required:
 * [Qt opensource framework](http://www.qt.io/).
 
 # Install
-Download and execute the latest installer from the [releases](https://github.com/FelixdelasPozas/SimpleHasher/releases) page.  
+
+Simple Hasher is available for Windows 7 onwards. You can download the latest installer from the [releases page](https://github.com/FelixdelasPozas/SimpleHasher/releases). Neither the application or the installer are digitally signed so the system will ask for approval before running it the first time.
 
 # Screenshots
 Simple main dialog, showing the progress while computing the hashes of some files.
