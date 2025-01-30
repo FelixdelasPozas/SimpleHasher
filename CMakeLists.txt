@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.8.6)
 
 # Version Number
 set (SIMPLE_HASHER_VERSION_MAJOR 1)
-set (SIMPLE_HASHER_VERSION_MINOR 1)
+set (SIMPLE_HASHER_VERSION_MINOR 2)
 set (SIMPLE_HASHER_VERSION_PATCH 0)
 
 # Find includes in corresponding build directories
@@ -68,6 +68,7 @@ set (CORE_SOURCES
   Hash.cpp
   SimpleHasher.cpp
   ConfigurationDialog.cpp
+  Utils.cpp
   hash/MD5.cpp
   hash/SHA1.cpp
   hash/SHA224.cpp

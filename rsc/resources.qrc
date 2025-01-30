@@ -12,5 +12,6 @@
 	<file>bad.svg</file>
 	<file>warning.svg</file>
 	<file>save.svg</file>
+	<file>kofi_logo.png</file>
   </qresource>
 </RCC>

@@ -22,8 +22,11 @@
 
 // Qt
 #include <QtGlobal>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QDateTime>
 
-const QString VERSION = QString("version 1.1.0");
+const QString VERSION = QString("version 1.2.0");
 
 //-----------------------------------------------------------------
 AboutDialog::AboutDialog(QWidget *parent, Qt::WindowFlags flags)
@@ -40,4 +43,9 @@ AboutDialog::AboutDialog(QWidget *parent, Qt::WindowFlags flags)
   m_version->setText(VERSION);
 
   m_qtVersion->setText(tr("version %1.%2.%3").arg(QT_VERSION_MAJOR).arg(QT_VERSION_MINOR).arg(QT_VERSION_PATCH));
+
+  m_copy->setText(tr("Copyright (c) 2015-%1 Félix de las Pozas Álvarez").arg(QDateTime::currentDateTime().date().year()));
+
+  QObject::connect(m_kofiLabel, &Utils::ClickableHoverLabel::clicked,
+                   [this](){ QDesktopServices::openUrl(QUrl{"https://ko-fi.com/felixdelaspozas"}); });  
 }

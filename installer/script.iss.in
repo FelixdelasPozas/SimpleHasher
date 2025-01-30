@@ -3,7 +3,7 @@
 [Setup]
 AppName=Simple Hasher
 AppVersion=@SIMPLE_HASHER_VERSION_MAJOR@.@SIMPLE_HASHER_VERSION_MINOR@.@SIMPLE_HASHER_VERSION_PATCH@
-DefaultDirName={pf64}\Simple Hasher
+DefaultDirName={commonpf64}\Simple Hasher
 DefaultGroupName=Simple Hasher
 OutputDir=@PROJECT_BINARY_DIR@
 AppComments=Simple Hasher
