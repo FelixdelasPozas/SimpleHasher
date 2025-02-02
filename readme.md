@@ -51,7 +51,7 @@ Configuration dialog
 ![configuration](https://cloud.githubusercontent.com/assets/12167134/15993540/76f68e16-30e9-11e6-852f-328f1455117a.jpg)
 
 # Repository information
-**Version**: 1.3.0
+**Version**: 1.4.0
 
 **Status**: finished
 
@@ -61,7 +61,7 @@ Configuration dialog
 
 | Language                     |files          |blank        |comment           |code    |
 |:-----------------------------|--------------:|------------:|-----------------:|-------:|
-| C++                          |   14          |  518        |    419           |  2293  |
-| C/C++ Header                 |   13          |  241        |    576           |   496  |
-| CMake                        |    1          |   15        |      8           |    63  |
-| **Total**                    |   **28**      |  **774**    |   **1003**       |**2852**|
+| C++                          |   15          |  541        |    437           |  2425  |
+| C/C++ Header                 |   14          |  247        |    594           |   537  |
+| CMake                        |    1          |   15        |      8           |    64  |
+| **Total**                    |   **30**      |  **803**    |   **1039**       |**3026**|

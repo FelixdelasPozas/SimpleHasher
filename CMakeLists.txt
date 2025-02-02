@@ -4,7 +4,7 @@ project(SimpleHasher)
 
 # Version Number
 set (SIMPLE_HASHER_VERSION_MAJOR 1)
-set (SIMPLE_HASHER_VERSION_MINOR 3)
+set (SIMPLE_HASHER_VERSION_MINOR 4)
 set (SIMPLE_HASHER_VERSION_PATCH 0)
 
 # C++17
@@ -75,6 +75,7 @@ set (CORE_SOURCES
   hash/SHA384.cpp
   hash/SHA512.cpp
   hash/Tiger.cpp
+  external/QTaskBarButton.cpp
 )
 
 set(CORE_EXTERNAL_LIBS

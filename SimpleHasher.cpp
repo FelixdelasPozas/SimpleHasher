@@ -81,6 +81,7 @@ SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::Window
 , m_spaces       {true}
 , m_oneline      {false}
 , m_uppercase    {false}
+, m_taskbarButton{this}
 {
   qRegisterMetaType<const Hash *>("Hash");
   
@@ -88,6 +89,7 @@ SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::Window
 
   // Better bar than the "Universal" default style in Qt6.
   m_progress->setStyle(QStyleFactory::create("fusion"));
+  m_taskbarButton.setRange(0,100);
 
   QStringList labels = { tr("Filename") };
 
@@ -157,6 +159,7 @@ void SimpleHasher::hideProgress()
   m_hashGroup->setEnabled(true);
   m_progress->hide();
   m_cancel->hide();
+  m_taskbarButton.setState(QTaskBarButton::State::Invisible);
   m_cancel->setEnabled(true);
 }
 
@@ -166,6 +169,8 @@ void SimpleHasher::showProgress()
   m_hashGroup->setEnabled(false);
   m_progress->setValue(0);
   m_progress->show();
+  m_taskbarButton.setState(QTaskBarButton::State::Normal);
+  m_taskbarButton.setValue(0);
   m_cancel->show();
 }
 
@@ -289,6 +294,7 @@ void SimpleHasher::onComputePressed()
     connect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     connect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)), Qt::DirectConnection);
     connect(m_thread.get(), SIGNAL(hashUpdated(const QString &, const Hash *, const int)), this, SLOT(onHashUpdated(const QString &, const Hash *, const int)), Qt::DirectConnection);
+    connect(m_thread.get(), SIGNAL(progress(int)), &m_taskbarButton, SLOT(setValue(int)));
 
     m_thread->start();
   }
@@ -539,6 +545,7 @@ void SimpleHasher::onComputationFinished()
     disconnect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
     disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
+    disconnect(m_thread.get(), SIGNAL(progress(int)), &m_taskbarButton, SLOT(setValue(int)));
 
     if(m_mode == Mode::GENERATE)
     {

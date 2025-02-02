@@ -31,6 +31,7 @@
 
 // Project
 #include <Hash.h>
+#include <external\QTaskBarButton.h>
 
 class ComputerThread;
 class QPoint;
@@ -232,6 +233,7 @@ class SimpleHasher
     QMap<QString, QMap<QString, HashSPtr>> m_results;       /** maps files -> computed hashes.                                  */
     QStringList                            m_headers;       /** list of column strings, just to avoid computing over and over.. */
     std::shared_ptr<QMenu>                 m_menu;          /** contextual menu for the table.                                  */
+    QTaskBarButton                         m_taskbarButton; /** taskbar button for progress reporting.                          */
 };
 
 /** \class HashCellItem
