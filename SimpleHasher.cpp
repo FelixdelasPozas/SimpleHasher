@@ -41,9 +41,13 @@
 #include <QPainter>
 #include <QClipboard>
 #include <QThreadPool>
-#include <QtWinExtras/QWinTaskbarProgress>
 #include <QModelIndex>
 #include <QObject>
+#include <QRegularExpression>
+#include <QStyleFactory>
+#include <QMimeData>
+#include <QDropEvent>
+#include <QDragEnterEvent>
 #include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
@@ -66,21 +70,24 @@ const QString NOT_COMPUTED_TOOLTIP = QString("Hash hasn't been computed.");
 const QString FILE_NOT_FOUND       = QString("File not found, can't compute or check hash.");
 const QString NOT_COMPUTED_YET     = QString("Hash not checked yet.");
 
-//----------------------------------------------------------------
+const QString INI_FILENAME = QString("SimpleHasher.ini");
+
+ //----------------------------------------------------------------
 SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::WindowFlags flags)
 : QMainWindow    (parent, flags)
-, m_mode         {files.isEmpty() ? Mode::GENERATE : Mode::CHECK}
+, m_mode         {Mode::NONE}
 , m_files        {files}
 , m_thread       {nullptr}
 , m_spaces       {true}
 , m_oneline      {false}
 , m_uppercase    {false}
-, m_taskBarButton{nullptr}
 {
   qRegisterMetaType<const Hash *>("Hash");
-  qRegisterMetaType<QVector<int>>("Point");
-
+  
   setupUi(this);
+
+  // Better bar than the "Universal" default style in Qt6.
+  m_progress->setStyle(QStyleFactory::create("fusion"));
 
   QStringList labels = { tr("Filename") };
 
@@ -107,17 +114,7 @@ SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::Window
 
   connectSignals();
 
-  if(m_mode == Mode::CHECK)
-  {
-    m_addFile->hide();
-    m_removeFile->hide();
-    m_compute->hide();
-    m_save->hide();
-    m_hashGroup->hide();
-    m_options->hide();
-
-    loadInformation();
-  }
+  setMode((files.isEmpty()) ? Mode::GENERATE : Mode::CHECK);
 }
 
 //----------------------------------------------------------------
@@ -160,7 +157,6 @@ void SimpleHasher::hideProgress()
   m_hashGroup->setEnabled(true);
   m_progress->hide();
   m_cancel->hide();
-  if(m_taskBarButton) m_taskBarButton->progress()->setVisible(false);
   m_cancel->setEnabled(true);
 }
 
@@ -170,8 +166,6 @@ void SimpleHasher::showProgress()
   m_hashGroup->setEnabled(false);
   m_progress->setValue(0);
   m_progress->show();
-  if(m_taskBarButton) m_taskBarButton->progress()->setVisible(true);
-  if(m_taskBarButton) m_taskBarButton->progress()->setValue(0);
   m_cancel->show();
 }
 
@@ -255,12 +249,12 @@ void SimpleHasher::onComputePressed()
           auto item   = dynamic_cast<HashCellItem *>(m_hashTable->item(row, column));
           item->setProgress(0);
           item->setData(Qt::UserRole+1, false);
-          item->setBackground(palette().background());
+          item->setBackground(palette().window());
 
           if(item->text() == NOT_FOUND || (m_hashTable->item(row,0)->toolTip() == FILE_NOT_FOUND))
           {
             toRemove << hash;
-            item->setBackgroundColor(QColor(200,200,50));
+            item->setBackground(QColor(200,200,50));
           }
         }
 
@@ -284,11 +278,14 @@ void SimpleHasher::onComputePressed()
 
   if(!computations.empty())
   {
+    m_addFile->setEnabled(false);
+    m_removeFile->setEnabled(false);
+    m_compute->setEnabled(false);
+
     m_thread = std::make_shared<ComputerThread>(computations, m_threadsNum);
     showProgress();
 
     connect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
-    if(m_taskBarButton) connect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
     connect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     connect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)), Qt::DirectConnection);
     connect(m_thread.get(), SIGNAL(hashUpdated(const QString &, const Hash *, const int)), this, SLOT(onHashUpdated(const QString &, const Hash *, const int)), Qt::DirectConnection);
@@ -326,11 +323,11 @@ void SimpleHasher::onCancelPressed()
 
               if(m_mode == Mode::CHECK)
               {
-                item->setBackgroundColor(QColor{200,50,50});
+                item->setBackground(QColor{100,50,50});
               }
               else
               {
-                item->setBackground(palette().background());
+                item->setBackground(palette().window());
               }
             }
           }
@@ -397,13 +394,12 @@ void SimpleHasher::onSavePressed()
     }
 
     QByteArray data;
-
     for (auto row: toSave)
     {
       auto hashText = m_results[m_files.at(row)][m_headers.at(column)]->value();
       auto name = m_files.at(row).split(QChar('/')).last();
-      data.append(hashText.remove('\n').remove(' ').toLower());
-      data.append(tr(" *%1\n").arg(name));
+      const QString toBuffer = hashText.remove('\n').remove(' ').toLower() + QString(" *%1\n").arg(name);
+      data.append(toBuffer.toStdString().c_str());
     }
 
     file.write(data);
@@ -541,7 +537,6 @@ void SimpleHasher::onComputationFinished()
   if(m_thread)
   {
     disconnect(m_thread.get(), SIGNAL(progress(int)), m_progress, SLOT(setValue(int)));
-    if(m_taskBarButton) disconnect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
     disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
 
@@ -573,35 +568,38 @@ void SimpleHasher::onComputationFinished()
   }
 
   hideProgress();
+  m_addFile->setEnabled(true);  
+  m_removeFile->setEnabled(true);
+  m_compute->setEnabled(true);
 }
 
 //----------------------------------------------------------------
 void SimpleHasher::loadSettings()
 {
-  QSettings settings("Felix de las Pozas Alvarez", "SimpleHasher");
+  const auto settings = applicationSettings();
 
-  auto geometry = settings.value(GEOMETRY, QByteArray()).toByteArray();
+  auto geometry = settings->value(GEOMETRY, QByteArray()).toByteArray();
   if(geometry.length() != 0)
   {
     restoreGeometry(geometry);
   }
 
-  settings.beginGroup("HashAlgorithms");
-  m_md5   ->setChecked(settings.value(STATE_MD5, false).toBool());
-  m_sha1  ->setChecked(settings.value(STATE_SHA1, true).toBool());
-  m_sha224->setChecked(settings.value(STATE_SHA224, false).toBool());
-  m_sha256->setChecked(settings.value(STATE_SHA256, false).toBool());
-  m_sha384->setChecked(settings.value(STATE_SHA384, false).toBool());
-  m_sha512->setChecked(settings.value(STATE_SHA512, false).toBool());
-  m_tiger ->setChecked(settings.value(STATE_TIGER, false).toBool());
-  settings.endGroup();
+  settings->beginGroup("HashAlgorithms");
+  m_md5   ->setChecked(settings->value(STATE_MD5, false).toBool());
+  m_sha1  ->setChecked(settings->value(STATE_SHA1, true).toBool());
+  m_sha224->setChecked(settings->value(STATE_SHA224, false).toBool());
+  m_sha256->setChecked(settings->value(STATE_SHA256, false).toBool());
+  m_sha384->setChecked(settings->value(STATE_SHA384, false).toBool());
+  m_sha512->setChecked(settings->value(STATE_SHA512, false).toBool());
+  m_tiger ->setChecked(settings->value(STATE_TIGER, false).toBool());
+  settings->endGroup();
 
-  settings.beginGroup("Options");
-  m_oneline    = settings.value(OPTIONS_ONELINE, false).toBool();
-  m_spaces     = settings.value(OPTIONS_SPACES, true).toBool();
-  m_uppercase  = settings.value(OPTIONS_UPPERCASE, false).toBool();
-  m_threadsNum = settings.value(THREADS_NUMBER, QThreadPool::globalInstance()->maxThreadCount()).toInt();
-  settings.endGroup();
+  settings->beginGroup("Options");
+  m_oneline    = settings->value(OPTIONS_ONELINE, false).toBool();
+  m_spaces     = settings->value(OPTIONS_SPACES, true).toBool();
+  m_uppercase  = settings->value(OPTIONS_UPPERCASE, false).toBool();
+  m_threadsNum = settings->value(THREADS_NUMBER, QThreadPool::globalInstance()->maxThreadCount()).toInt();
+  settings->endGroup();
 
   if(m_threadsNum != -1)
   {
@@ -612,27 +610,28 @@ void SimpleHasher::loadSettings()
 //----------------------------------------------------------------
 void SimpleHasher::saveSettings()
 {
-  QSettings settings("Felix de las Pozas Alvarez", "SimpleHasher");
-  settings.setValue(GEOMETRY, saveGeometry());
+  auto settings = applicationSettings();
+
+  settings->setValue(GEOMETRY, saveGeometry());
 
   if(m_mode == Mode::GENERATE)
   {
-    settings.beginGroup("HashAlgorithms");
-    settings.setValue(STATE_MD5,    m_md5->isChecked());
-    settings.setValue(STATE_SHA1,   m_sha1->isChecked());
-    settings.setValue(STATE_SHA224, m_sha224->isChecked());
-    settings.setValue(STATE_SHA256, m_sha256->isChecked());
-    settings.setValue(STATE_SHA384, m_sha384->isChecked());
-    settings.setValue(STATE_SHA512, m_sha512->isChecked());
-    settings.setValue(STATE_TIGER,  m_tiger->isChecked());
-    settings.endGroup();
+    settings->beginGroup("HashAlgorithms");
+    settings->setValue(STATE_MD5,    m_md5->isChecked());
+    settings->setValue(STATE_SHA1,   m_sha1->isChecked());
+    settings->setValue(STATE_SHA224, m_sha224->isChecked());
+    settings->setValue(STATE_SHA256, m_sha256->isChecked());
+    settings->setValue(STATE_SHA384, m_sha384->isChecked());
+    settings->setValue(STATE_SHA512, m_sha512->isChecked());
+    settings->setValue(STATE_TIGER,  m_tiger->isChecked());
+    settings->endGroup();
 
-    settings.beginGroup("Options");
-    settings.setValue(OPTIONS_ONELINE,   m_oneline);
-    settings.setValue(OPTIONS_SPACES,    m_spaces);
-    settings.setValue(OPTIONS_UPPERCASE, m_uppercase);
-    settings.setValue(THREADS_NUMBER,    m_threadsNum);
-    settings.endGroup();
+    settings->beginGroup("Options");
+    settings->setValue(OPTIONS_ONELINE,   m_oneline);
+    settings->setValue(OPTIONS_SPACES,    m_spaces);
+    settings->setValue(OPTIONS_UPPERCASE, m_uppercase);
+    settings->setValue(THREADS_NUMBER,    m_threadsNum);
+    settings->endGroup();
 
     bool valid = false;
     for(auto checkbox: {m_md5, m_sha1, m_sha224, m_sha256, m_sha384, m_sha512, m_tiger})
@@ -640,8 +639,10 @@ void SimpleHasher::saveSettings()
       valid |= checkbox->isChecked();
     }
 
-    if(!valid) settings.setValue(STATE_SHA1, true);
+    if(!valid) settings->setValue(STATE_SHA1, true);
   }
+
+  settings->sync();
 }
 
 //----------------------------------------------------------------
@@ -677,13 +678,13 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
     if(itemHash == value)
     {
       item->setData(Qt::UserRole+1, true);
-      item->setBackgroundColor(QColor(50,200,50));
+      item->setBackground(QColor(50,200,50));
       item->setToolTip(tr("Correct Hash."));
     }
     else
     {
       item->setData(Qt::UserRole+1, false);
-      item->setBackgroundColor(QColor(200, 50, 50));
+      item->setBackground(QColor(100, 50, 50));
       item->setToolTip(tr("Incorrect Hash."));
     }
 
@@ -693,13 +694,13 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
 
       if(tableItem->text() == NOT_FOUND) continue;
 
-      if(tableItem->backgroundColor() == QColor())
+      if(tableItem->background() == QColor())
       {
         setIcon = false;
         break;
       }
 
-      success &= (tableItem->backgroundColor() == QColor(50,200,50));
+      success &= (tableItem->background() == QColor(50,200,50));
     }
 
     if(setIcon)
@@ -815,8 +816,8 @@ void SimpleHasher::saveSelectedHashes()
     {
       auto hashText = m_results[m_files.at(row)][m_headers.at(column)]->value();
       auto name = m_files.at(row).split(QChar('/')).last();
-      data.append(hashText.remove('\n').remove(' ').toLower());
-      data.append(tr(" *%1\n").arg(name));
+      const QString toBuffer = hashText.remove('\n').remove(' ').toLower() + QString(" *%1\n").arg(name);
+      data.append(toBuffer.toStdString().c_str());
     }
 
     hashFilenames << filename;
@@ -903,11 +904,12 @@ const QString SimpleHasher::guessHash(QFile &file)
 
   if(data.length() > 32)
   {
-    QRegExp reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
+    QRegularExpression reg{"(([a-h]*)([A-H]*)([0-9]*))*"};
+    QRegularExpressionMatch match = reg.match(data);
 
-    if(reg.indexIn(data) != -1)
+    if(reg.captureCount() != -1)
     {
-      auto hash = reg.cap();
+      auto hash = match.captured(0);
 
       switch(hash.length())
       {
@@ -1073,8 +1075,7 @@ void SimpleHasher::loadInformation()
       continue;
     }
 
-    QRegExp hashexp{"(([a-h]*)([A-H]*)([0-9]*))*"};
-    hashexp.setMinimal(false);
+    QRegularExpression hashexp{"(([a-h]*)([A-H]*)([0-9]*))*"};
 
     begin = 0;
     int i = 0;
@@ -1082,7 +1083,7 @@ void SimpleHasher::loadInformation()
     while((begin != -1) && (i < files.size()))
     {
       auto hashText = data.mid(begin, length);
-      auto index = hashexp.indexIn(hashText);
+      QRegularExpressionMatch match = hashexp.match(hashText);
 
       if((i < files.size()) && (hashText.length() != length))
       {
@@ -1090,9 +1091,9 @@ void SimpleHasher::loadInformation()
         file.close();
       }
 
-      if(index != -1 && (hashText.length() == length))
+      if(hashexp.captureCount() != -1 && (hashText.length() == length))
       {
-        auto hashText = hashexp.cap();
+        auto hashText = match.captured(0);
         auto column = m_headers.indexOf(hashNameList.at(parameterFiles.indexOf(filename)));
         auto row    = m_files.indexOf(files.at(i));
 
@@ -1102,7 +1103,7 @@ void SimpleHasher::loadInformation()
 
         if(m_hashTable->item(row,0)->toolTip() == FILE_NOT_FOUND)
         {
-          item->setBackgroundColor(QColor(200,200,50));
+          item->setBackground(QColor(200,200,50));
           item->setToolTip(FILE_NOT_FOUND);
         }
         ++i;
@@ -1165,6 +1166,18 @@ void SimpleHasher::onOptionsPressed()
 }
 
 //----------------------------------------------------------------
+std::unique_ptr<QSettings> SimpleHasher::applicationSettings() const
+{
+  QDir applicationDir{QCoreApplication::applicationDirPath()};
+  if(applicationDir.exists(INI_FILENAME))
+  {
+    return std::make_unique<QSettings>(applicationDir.absoluteFilePath(INI_FILENAME), QSettings::IniFormat);
+  }
+
+  return std::make_unique<QSettings>("Felix de las Pozas Alvarez", "SimpleHasher");
+}
+
+//----------------------------------------------------------------
 void SimpleHasher::addFilesToTable(const QStringList &files)
 {
   m_hashTable->setEnabled(true);
@@ -1181,9 +1194,7 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
   for(auto file: files)
   {
     if(m_files.contains(file))
-    {
       continue;
-    }
 
     m_files << file;
 
@@ -1192,8 +1203,9 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
     auto item     = new QTableWidgetItem(filename);
     auto exists   = QFileInfo{file}.exists();
 
-    // convoluted way of doing things, but item->font().setBold(true) doesn't work...
-    item->setFont(QFont{item->font().key(), item->font().pointSize(), QFont::Bold});
+    auto itemFont = item->font();
+    itemFont.setBold(true);
+    item->setFont(itemFont);
     if(!exists)
     {
       item->setIcon(QIcon(":/SimpleHasher/warning.svg"));
@@ -1231,20 +1243,21 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
 }
 
 //----------------------------------------------------------------
-void SimpleHasher::showEvent(QShowEvent* event)
+void SimpleHasher::setMode(const Mode mode)
 {
-  QMainWindow::showEvent(event);
+  if(m_mode == mode) return;
+  m_mode = mode;
 
-  m_taskBarButton = new QWinTaskbarButton(this);
-  m_taskBarButton->setWindow(this->windowHandle());
-  m_taskBarButton->progress()->setRange(0,100);
-  m_taskBarButton->progress()->setVisible(false);
+  const auto isGenerate = (m_mode == Mode::GENERATE);
+  m_addFile->setVisible(isGenerate);
+  m_removeFile->setVisible(isGenerate);
+  m_compute->setVisible(isGenerate);
+  m_save->setVisible(isGenerate);
+  m_hashGroup->setVisible(isGenerate);
+  m_options->setVisible(isGenerate);
 
-  if(m_thread)
-  {
-    m_taskBarButton->progress()->setVisible(true);
-    connect(m_thread.get(), SIGNAL(progress(int)), m_taskBarButton->progress(), SLOT(setValue(int)));
-  }
+  if(m_mode == Mode::CHECK)
+    loadInformation();
 }
 
 //----------------------------------------------------------------
@@ -1253,6 +1266,42 @@ void SimpleHasher::closeEvent(QCloseEvent* event)
   if(m_thread && m_thread->isRunning())
   {
     onCancelPressed();
+  }
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::dragEnterEvent(QDragEnterEvent *e)
+{
+  if (e->mimeData()->hasFormat("text/uri-list"))
+    e->acceptProposedAction();  
+}
+
+//----------------------------------------------------------------
+void SimpleHasher::dropEvent(QDropEvent *e)
+{
+  if (e->mimeData()->hasUrls())
+  {
+    QStringList filesToAdd;
+    const auto urlList = e->mimeData()->urls();
+
+    if(urlList.count() == 1 && urlList.first().toLocalFile().contains("SUMS"))
+    {
+      m_files.clear();
+      m_files << urlList.first().toLocalFile();
+      setMode(Mode::CHECK);
+      return;
+    }
+    
+    setMode(Mode::GENERATE);
+    for(QUrl &url : e->mimeData()->urls())
+    {
+      QFileInfo fInfo{url.toLocalFile()};
+      if(fInfo.exists())
+        filesToAdd << fInfo.absoluteFilePath();
+    }
+
+    if (!filesToAdd.isEmpty())
+      addFilesToTable(filesToAdd);
   }
 }
 
@@ -1269,36 +1318,51 @@ void HashCellDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
   else
   {
     painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
 
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
-    QBrush brush{QColor{210,210,210}};
+    const auto cellText = index.data(Qt::DisplayRole).toString();
+
+    QBrush brush;
     if(progressValue == 0 || progressValue >= 100)
     {
       brush = opt.backgroundBrush;
-
-      painter->setRenderHint(QPainter::Antialiasing, true);
       painter->fillRect(option.rect, brush);
+      painter->setFont(opt.font);
+      painter->drawText(option.rect, Qt::AlignCenter, cellText);
     }
     else
     {
-      QStyleOptionProgressBar progressBarOption;
-      progressBarOption.rect = option.rect;
-      progressBarOption.minimum = 0;
-      progressBarOption.maximum = 100;
-      progressBarOption.textAlignment = Qt::AlignCenter;
-      progressBarOption.progress = progressValue;
-      progressBarOption.textVisible = false;
+      const auto drawRect = option.rect;
+      const auto point = std::nearbyint(option.rect.width() * static_cast<float>(progressValue)/100);
+      painter->setFont(opt.font);
 
-      QApplication::style()->drawControl(QStyle::CE_ProgressBar, &progressBarOption, painter);
+      QRect rightRect = drawRect;
+      rightRect.setWidth(point);
+      brush = opt.palette.highlight();
+      painter->fillRect(rightRect, brush);
 
-      if(progressValue < 50) painter->setPen(Qt::black);
-      else                   painter->setPen(Qt::white);
+      QRect leftRect = drawRect;
+      leftRect.setLeft(drawRect.left() + point);
+      leftRect.setWidth(option.rect.width()-point);
+      brush = opt.backgroundBrush;
+      painter->fillRect(leftRect, brush);
+
+      QRegion region = drawRect;
+      region = region.subtracted(leftRect);
+      painter->setClipRegion(region);
+      painter->setPen(Qt::white);
+      painter->drawText(drawRect, cellText, QTextOption(Qt::AlignAbsolute|Qt::AlignHCenter|Qt::AlignVCenter));
+
+      if (!leftRect.isNull())
+      {
+        painter->setPen(Qt::black);
+        painter->setClipRect(leftRect);
+        painter->drawText(drawRect, cellText, QTextOption(Qt::AlignAbsolute|Qt::AlignHCenter|Qt::AlignVCenter));
+      }
     }
-
-    painter->setFont(opt.font);
-    painter->drawText(option.rect, Qt::AlignCenter, index.data(Qt::DisplayRole).toString());
 
     painter->restore();
   }

@@ -23,7 +23,6 @@
 // Qt
 #include "ui_SimpleHasher.h"
 #include <QMainWindow>
-#include <QtWinExtras/QWinTaskbarButton>
 #include <QStyledItemDelegate>
 #include <QTableWidgetItem>
 
@@ -38,6 +37,7 @@ class QPoint;
 class QPainter;
 class QStyleOptionViewItem;
 class QModelItem;
+class QSettings;
 
 /** \class SimpleHasher
  * \brief Application main window class.
@@ -55,7 +55,7 @@ class SimpleHasher
      * \param[in] flags window flags.
      *
      */
-    SimpleHasher(const QStringList &files, QWidget *parent = nullptr, Qt::WindowFlags flags = 0);
+    SimpleHasher(const QStringList &files, QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
 
     /** \brief SimpleHasher class virtual destructor.
      *
@@ -63,8 +63,9 @@ class SimpleHasher
     virtual ~SimpleHasher();
 
   protected:
-    virtual void showEvent(QShowEvent *event) override;
-    virtual void closeEvent(QCloseEvent *event) override;
+    virtual void closeEvent(QCloseEvent *e) override;
+    virtual void dragEnterEvent(QDragEnterEvent *e) override;
+    virtual void dropEvent(QDropEvent *e) override;
 
   private slots:
     /** \brief Shows the about dialog.
@@ -144,11 +145,16 @@ class SimpleHasher
     void onOptionsPressed();
 
   private:
+    /** \brief Returns the correct QSettings depending if the INI file is present or not.
+     *
+     */
+    std::unique_ptr<QSettings> applicationSettings() const;
+
     /** \class Mode
      * \brief Enumeration of application operation mode.
      *
      */
-    enum class Mode: char { GENERATE = 0, CHECK };
+    enum class Mode: char { GENERATE = 0, CHECK = 1, NONE = 2 };
 
     /** Settings strings. */
     static QString STATE_MD5;
@@ -210,6 +216,12 @@ class SimpleHasher
      */
     void addFilesToTable(const QStringList &files);
 
+    /** \brief Updates the UI depending on the given mode.
+     * \param[in] mode Operation mode.
+     *
+     */
+    void setMode(const Mode mode);
+
     Mode                                   m_mode;          /** operation mode.                                                 */
     QStringList                            m_files;         /** files in the table.                                             */
     std::shared_ptr<ComputerThread>        m_thread;        /** computer thread.                                                */
@@ -220,7 +232,6 @@ class SimpleHasher
     QMap<QString, QMap<QString, HashSPtr>> m_results;       /** maps files -> computed hashes.                                  */
     QStringList                            m_headers;       /** list of column strings, just to avoid computing over and over.. */
     std::shared_ptr<QMenu>                 m_menu;          /** contextual menu for the table.                                  */
-    QWinTaskbarButton                     *m_taskBarButton; /** task bar button widget.                                         */
 };
 
 /** \class HashCellItem

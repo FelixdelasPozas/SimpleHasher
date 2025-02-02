@@ -116,7 +116,7 @@ void SHA384::process_block(const unsigned char* char_block)
 {
   unsigned long long a, b, c, d, e, f, g, h, temp1, temp2;
   unsigned long long expanded_blk[80];
-  register unsigned int loop;
+  unsigned int loop;
 
   // Rotational shift to the right
   auto ROTR = [](unsigned long long x, unsigned int n) { return (((x & 0xFFFFFFFFFFFFFFFFLL) >> n) | (x << (64 - n))); };

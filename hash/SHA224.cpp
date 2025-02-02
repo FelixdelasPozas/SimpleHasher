@@ -58,7 +58,7 @@ void SHA224::process_block(const unsigned char *char_block)
 {
   unsigned long a, b, c, d, e, f, g, h, temp1, temp2;
   unsigned long expanded_blk[64];
-  register unsigned int loop;
+  unsigned int loop;
 
   // Rotational shift to the right
   auto ROTR = [](unsigned long x, unsigned int n) { return (((x & 0xFFFFFFFF) >> n) | (x << (32 - n))); };

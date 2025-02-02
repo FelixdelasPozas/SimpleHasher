@@ -90,7 +90,7 @@ void SHA1::process_block(const unsigned char *char_block)
 {
   unsigned long a, b, c, d, e, temp;
   unsigned long expanded_blk[80];
-  register unsigned int loop;
+  unsigned int loop;
 
   auto Function = [](unsigned int loop, unsigned long x, unsigned long y, unsigned long z)
   {

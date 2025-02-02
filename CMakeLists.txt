@@ -1,12 +1,17 @@
-project(SimpleHasher)
+cmake_minimum_required (VERSION 3.10.0)
 
-cmake_minimum_required (VERSION 2.8.6)
+project(SimpleHasher)
 
 # Version Number
 set (SIMPLE_HASHER_VERSION_MAJOR 1)
-set (SIMPLE_HASHER_VERSION_MINOR 2)
+set (SIMPLE_HASHER_VERSION_MINOR 3)
 set (SIMPLE_HASHER_VERSION_PATCH 0)
 
+# C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+							 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -14,13 +19,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 # Find the QtWidgets library
-find_package(Qt5 COMPONENTS Widgets Multimedia WinExtras)
-
-# We need add -DQT_WIDGETS_LIB when using QtWidgets in Qt 5.
-#add_definitions(${Qt5Widgets_DEFINITIONS})
-#add_definitions(${Qt5Multimedia_DEFINITIONS})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+find_package(Qt6 COMPONENTS Widgets Multimedia)
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   set(CORE_EXTERNAL_LIBS ${CORE_EXTERNAL_LIBS} ${QT_QTTEST_LIBRARY})
@@ -42,14 +41,14 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}  # For wrap/ui files
   )
 
-set(CMAKE_CXX_FLAGS " -Wall -Wno-deprecated -std=c++11 -mwindows -m64")
+set(CMAKE_CXX_FLAGS " -Wall -Wno-deprecated -std=c++17 -mwindows -m64")
 
 # Add Qt Resource files
-qt5_add_resources(RESOURCES
+qt6_add_resources(RESOURCES
   rsc/resources.qrc
 )
 
-qt5_wrap_ui(CORE_UI
+qt6_wrap_ui(CORE_UI
   # .ui for Qt
   AboutDialog.ui
   SimpleHasher.ui
@@ -79,10 +78,9 @@ set (CORE_SOURCES
 )
 
 set(CORE_EXTERNAL_LIBS
-  Qt5::Widgets
-  Qt5::WinExtras
+  Qt6::Widgets
+  Qt6::Multimedia
 )
 
 add_executable(SimpleHasher ${CORE_SOURCES})
 target_link_libraries (SimpleHasher ${CORE_EXTERNAL_LIBS})
-qt5_use_modules(SimpleHasher Widgets Multimedia)

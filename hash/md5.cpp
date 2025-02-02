@@ -143,9 +143,9 @@ const QString MD5::value() const
 //----------------------------------------------------------------
 void MD5::process_block(const unsigned char *char_block)
 {
-  register unsigned long a, b, c, d,temp;
+  unsigned long a, b, c, d,temp;
   unsigned long long_block[16];
-  register unsigned int loop;
+  unsigned int loop;
 
   auto Function = [](unsigned int loop, unsigned long x, unsigned long y, unsigned long z)
   {

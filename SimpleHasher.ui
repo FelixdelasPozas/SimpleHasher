@@ -17,12 +17,6 @@
    <iconset resource="rsc/resources.qrc">
     <normaloff>:/SimpleHasher/application.svg</normaloff>:/SimpleHasher/application.svg</iconset>
   </property>
-  <property name="documentMode">
-   <bool>false</bool>
-  </property>
-  <property name="unifiedTitleAndToolBarOnMac">
-   <bool>true</bool>
-  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0">
     <item>
@@ -31,10 +25,10 @@
        <bool>false</bool>
       </property>
       <property name="toolTip">
-       <string/>
+       <string>List of files and computed hashes</string>
       </property>
       <property name="sizeAdjustPolicy">
-       <enum>QAbstractScrollArea::AdjustToContents</enum>
+       <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
       </property>
       <property name="alternatingRowColors">
        <bool>true</bool>
@@ -42,9 +36,6 @@
       <property name="columnCount">
        <number>0</number>
       </property>
-      <attribute name="verticalHeaderVisible">
-       <bool>false</bool>
-      </attribute>
      </widget>
     </item>
     <item>
@@ -148,7 +139,7 @@ QGroupBox::title {
        <item>
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -165,6 +156,11 @@ QGroupBox::title {
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
        <widget class="QProgressBar" name="m_progress">
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
         <property name="toolTip">
          <string>Current process progress.</string>
         </property>
@@ -172,7 +168,7 @@ QGroupBox::title {
          <number>24</number>
         </property>
         <property name="alignment">
-         <set>Qt::AlignCenter</set>
+         <set>Qt::AlignmentFlag::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -276,7 +272,7 @@ QGroupBox::title {
       <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>

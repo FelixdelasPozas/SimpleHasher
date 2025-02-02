@@ -18,7 +18,7 @@
  */
 
 // Project
-#include "SimpleHasher.h"
+#include <SimpleHasher.h>
 
 // Qt
 #include <QApplication>

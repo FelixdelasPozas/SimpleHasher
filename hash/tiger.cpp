@@ -38,7 +38,14 @@ Tiger::Tiger()
 : Hash{}
 {
   // initialize chaining variables
-  reset();
+  auto initReset = [&]()
+  {
+    hash.a = 0x0123456789abcdefULL;
+    hash.b = 0xfedcba9876543210ULL;
+    hash.c = 0xf096a5b4c3b2e187ULL;
+  };
+
+  initReset();
 
   if(!TABLE_AVAILABLE)
   {
@@ -46,9 +53,7 @@ Tiger::Tiger()
     generate_table(reinterpret_cast<const unsigned char *>(RANDOM_VALUE.toStdString().c_str()), PASSES_NUMBER);
 
     // Reset the values after the table generation.
-    hash.a = 0x0123456789abcdefULL;
-    hash.b = 0xfedcba9876543210ULL;
-    hash.c = 0xf096a5b4c3b2e187ULL;
+    initReset();
 
     TABLE_AVAILABLE = true;
   }

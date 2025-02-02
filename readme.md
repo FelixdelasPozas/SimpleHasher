@@ -16,6 +16,8 @@ Tool to generate and check file signatures (hashes) using the following hash alg
 
 The application can be used to check the SUM files that some websites provide to check for the integrity and authenticity of files. If invoked with a SUM file as parameter the application will check the signatures of the files present in the same folder as the SUM file. The computed hashes can be saved to disk (the whole table or only the selected ones) or to the clipboard using the contextual menu.
 
+You can also drag files from the explorer and drop in the main dialog. If the file is a SUMS file (that contains hashes for some files) the application will automatically change to "check mode" and check them. Otherwise the files are added to the list of files to compute hashes.
+
 ## Options
 From the configuration dialog several options can be modified:
 * Hash representations (uppercase or lowercase, break with spaces or compact, in a single or several lines).
@@ -29,7 +31,7 @@ From the configuration dialog several options can be modified:
 
 ## External dependencies:
 The following libraries are required:
-* [Qt opensource framework](http://www.qt.io/).
+* [Qt opensource framework](http://www.qt.io/) version 6.
 
 # Install
 
@@ -40,7 +42,7 @@ Simple main dialog, showing the progress while computing the hashes of some file
 
 ![maindialog](https://user-images.githubusercontent.com/12167134/56167612-ecaf5900-5fd8-11e9-9a3f-f90cf26c8b86.jpg)
 
-When checking hash files passed as a parameter the green means success (hashes match), red indicates errors (hashes don't match) and yellow indicates that the files were not found (so hashes can't be checked).
+When checking hash files passed as a parameter (or dropped from the explorer) the green means success (hashes match), red indicates errors (hashes don't match) and yellow indicates that the files were not found (so hashes can't be checked).
 
 ![hashcheck](https://cloud.githubusercontent.com/assets/12167134/15993541/772701cc-30e9-11e6-9dee-b5a288412e1b.jpg)
 
@@ -49,7 +51,7 @@ Configuration dialog
 ![configuration](https://cloud.githubusercontent.com/assets/12167134/15993540/76f68e16-30e9-11e6-852f-328f1455117a.jpg)
 
 # Repository information
-**Version**: 1.1.0
+**Version**: 1.3.0
 
 **Status**: finished
 
@@ -59,7 +61,7 @@ Configuration dialog
 
 | Language                     |files          |blank        |comment           |code    |
 |:-----------------------------|--------------:|------------:|-----------------:|-------:|
-| C++                          |   13          |  494        |    395           |  2209  |
-| C/C++ Header                 |   12          |  228        |    535           |   472  |
-| CMake                        |    1          |   16        |     10           |    61  |
-| **Total**                    |   **26**      |  **738**    |   **940**        |**2742**|
+| C++                          |   14          |  518        |    419           |  2293  |
+| C/C++ Header                 |   13          |  241        |    576           |   496  |
+| CMake                        |    1          |   15        |      8           |    63  |
+| **Total**                    |   **28**      |  **774**    |   **1003**       |**2852**|
