@@ -28,11 +28,12 @@ WizardSmallImageFile=@CMAKE_SOURCE_DIR@/installer/smallimage.bmp
 
 [Files]
 Source: "SimpleHasher.exe"; DestDir: "{app}";
-Source: "*.dll"; Excludes: "Qt6Network.dll"; DestDir: "{app}";
+Source: "*.dll"; DestDir: "{app}";
 Source: "iconengines/*.*"; DestDir: "{app}/iconengines/";
 Source: "imageformats/*.*"; DestDir: "{app}/imageformats/";
 Source: "platforms/*.*"; DestDir: "{app}/platforms/";
 Source: "styles/*.*"; DestDir: "{app}/styles/";
+Source: "networkinformation/*.*"; DestDir: "{app}/styles/";
 
 [Run]
 Filename: "{app}\SimpleHasher.exe"; Description: "Launch Simple Hasher"; Flags: postinstall nowait skipifsilent unchecked
