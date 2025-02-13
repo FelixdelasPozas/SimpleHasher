@@ -4,7 +4,7 @@ project(SimpleHasher)
 
 # Version Number
 set (SIMPLE_HASHER_VERSION_MAJOR 1)
-set (SIMPLE_HASHER_VERSION_MINOR 4)
+set (SIMPLE_HASHER_VERSION_MINOR 5)
 set (SIMPLE_HASHER_VERSION_PATCH 0)
 
 # C++17
@@ -17,6 +17,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+
+string(TIMESTAMP CURRENT_YEAR "%Y")
 
 # Find the QtWidgets library
 find_package(Qt6 COMPONENTS Widgets Multimedia)

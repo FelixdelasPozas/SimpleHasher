@@ -97,7 +97,7 @@ void ComputerThread::onProgressSignaled()
 //----------------------------------------------------------------
 void ComputerThread::run()
 {
-  QString fileErrors;
+  m_fileErrors.clear();
 
   for(int i = 0; i < m_computations.keys().size() && !m_abort; ++i)
   {
@@ -119,7 +119,7 @@ void ComputerThread::run()
 
       if(!file->open(QIODevice::ReadOnly) || !file->seek(0))
       {
-        fileErrors.append(tr("%1 error: %2\n").arg(filename).arg(file->errorString()));
+        m_fileErrors.append(tr("%1 error: %2\n").arg(filename).arg(file->errorString()));
         delete file;
         continue;
       }
@@ -155,19 +155,6 @@ void ComputerThread::run()
   }
 
   QApplication::processEvents();
-
-  if(!fileErrors.isEmpty())
-  {
-    QMessageBox dialog;
-
-    dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
-    dialog.setWindowTitle(tr("Errors in hash computation"));
-    dialog.setText(tr("Some files couldn't be processed."));
-    dialog.setDetailedText(fileErrors);
-    dialog.setIcon(QMessageBox::Icon::Critical);
-
-    dialog.exec();
-  }
 }
 
 //----------------------------------------------------------------

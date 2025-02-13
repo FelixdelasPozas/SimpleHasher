@@ -48,7 +48,6 @@
 #include <QMimeData>
 #include <QDropEvent>
 #include <QDragEnterEvent>
-#include <QDebug>
 
 QString SimpleHasher::STATE_MD5         = QString("MD5 Enabled");
 QString SimpleHasher::STATE_SHA1        = QString("SHA-1 Enabled");
@@ -63,12 +62,13 @@ QString SimpleHasher::OPTIONS_UPPERCASE = QString("Hash in uppercase");
 QString SimpleHasher::OPTIONS_SPACES    = QString("Break hash with spaces");
 QString SimpleHasher::THREADS_NUMBER    = QString("Number of simultaneous threads");
 
-const QString NOT_FOUND            = QString("Not found");
-const QString NOT_FOUND_TOOLTIP    = QString("Hash is not in the files passed as argument.");
-const QString NOT_COMPUTED         = QString("Not computed");
-const QString NOT_COMPUTED_TOOLTIP = QString("Hash hasn't been computed.");
-const QString FILE_NOT_FOUND       = QString("File not found, can't compute or check hash.");
-const QString NOT_COMPUTED_YET     = QString("Hash not checked yet.");
+const QString NOT_FOUND             = QString("Not found");
+const QString NOT_FOUND_TOOLTIP     = QString("Hash is not in the files passed as argument.");
+const QString NOT_COMPUTED          = QString("Not computed");
+const QString NOT_COMPUTED_TOOLTIP  = QString("Hash hasn't been computed.");
+const QString FILE_NOT_FOUND        = QString("File not found, can't compute or check hash.");
+const QString NOT_COMPUTED_YET      = QString("Hash not checked yet.");
+const QString COMPUTED_TOOLTIP      = QString("Hash computed.");
 
 const QString INI_FILENAME = QString("SimpleHasher.ini");
 
@@ -88,7 +88,7 @@ SimpleHasher::SimpleHasher(const QStringList &files, QWidget *parent, Qt::Window
   setupUi(this);
 
   // Better bar than the "Universal" default style in Qt6.
-  m_progress->setStyle(QStyleFactory::create("fusion"));
+  m_progress->setStyle(QStyleFactory::create("windowsvista"));
   m_taskbarButton.setRange(0,100);
 
   QStringList labels = { tr("Filename") };
@@ -158,9 +158,9 @@ void SimpleHasher::hideProgress()
 {
   m_hashGroup->setEnabled(true);
   m_progress->hide();
-  m_cancel->hide();
   m_taskbarButton.setState(QTaskBarButton::State::Invisible);
-  m_cancel->setEnabled(true);
+  m_cancel->hide();
+  m_cancel->setEnabled(false);
 }
 
 //----------------------------------------------------------------
@@ -172,6 +172,7 @@ void SimpleHasher::showProgress()
   m_taskbarButton.setState(QTaskBarButton::State::Normal);
   m_taskbarButton.setValue(0);
   m_cancel->show();
+  m_cancel->setEnabled(true);
 }
 
 //----------------------------------------------------------------
@@ -329,7 +330,7 @@ void SimpleHasher::onCancelPressed()
 
               if(m_mode == Mode::CHECK)
               {
-                item->setBackground(QColor{100,50,50});
+                item->setBackground(QColor{200,100,100});
               }
               else
               {
@@ -508,6 +509,7 @@ void SimpleHasher::onCheckBoxStateChanged()
     {
       QString text = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
 
+      bool alreadyComputed = false;
       if(m_results[m_files.at(row)].contains(labels.at(column)))
       {
         auto hash = m_results[m_files.at(row)][labels.at(column)];
@@ -517,6 +519,7 @@ void SimpleHasher::onCheckBoxStateChanged()
         if(!m_spaces)   text = text.remove(' ');
         if(m_uppercase) text = text.toUpper();
         enableSave = true;
+        alreadyComputed = true;
       }
 
       auto item = new HashCellItem{text};
@@ -524,7 +527,7 @@ void SimpleHasher::onCheckBoxStateChanged()
       item->setData(Qt::UserRole+1, false);
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
-      item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
+      item->setToolTip(m_mode == Mode::GENERATE ? (alreadyComputed ? COMPUTED_TOOLTIP : NOT_COMPUTED_TOOLTIP) : NOT_FOUND_TOOLTIP);
 
       m_hashTable->setItem(row, column, item);
     }
@@ -546,6 +549,8 @@ void SimpleHasher::onComputationFinished()
     disconnect(m_thread.get(), SIGNAL(finished()), this, SLOT(onComputationFinished()));
     disconnect(m_thread.get(), SIGNAL(hashComputed(const QString &, const Hash *)), this, SLOT(onHashComputed(const QString &, const Hash *)));
     disconnect(m_thread.get(), SIGNAL(progress(int)), &m_taskbarButton, SLOT(setValue(int)));
+
+    const auto fileErrors = m_thread->getErrors();    
 
     if(m_mode == Mode::GENERATE)
     {
@@ -571,6 +576,19 @@ void SimpleHasher::onComputationFinished()
       }
 
       m_save->setEnabled(true);
+    }
+
+    if (!fileErrors.isEmpty())
+    {
+      QMessageBox dialog;
+
+      dialog.setWindowIcon(QIcon(":/SimpleHasher/application.svg"));
+      dialog.setWindowTitle(tr("Errors in hash computation"));
+      dialog.setText(tr("Some files couldn't be processed."));
+      dialog.setDetailedText(fileErrors);
+      dialog.setIcon(QMessageBox::Icon::Critical);
+
+      dialog.exec();
     }
   }
 
@@ -670,7 +688,7 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
 
     item->setText(text);
     item->setData(Qt::UserRole+1, true);
-    item->setToolTip(tr("Hash computed."));
+    item->setToolTip(COMPUTED_TOOLTIP);
 
     m_hashTable->resizeColumnToContents(column);
   }
@@ -691,7 +709,7 @@ void SimpleHasher::onHashComputed(const QString& file, const Hash *hash)
     else
     {
       item->setData(Qt::UserRole+1, false);
-      item->setBackground(QColor(100, 50, 50));
+      item->setBackground(QColor(200,100,100));
       item->setToolTip(tr("Incorrect Hash."));
     }
 
@@ -945,6 +963,8 @@ void SimpleHasher::loadInformation()
   auto parameterFiles = m_files;
   parameterFiles.detach();
   m_files.clear();
+  m_hashTable->setRowCount(0);
+  m_results.clear();
 
   blockSignals(true);
   QList<QCheckBox *> checked;
@@ -1104,6 +1124,10 @@ void SimpleHasher::loadInformation()
         auto column = m_headers.indexOf(hashNameList.at(parameterFiles.indexOf(filename)));
         auto row    = m_files.indexOf(files.at(i));
 
+        if(m_oneline)   hashText = hashText.replace('\n', ' ');
+        if(!m_spaces)   hashText = hashText.remove(' ');
+        if(m_uppercase) hashText = hashText.toUpper();
+
         auto item = m_hashTable->item(row, column);
         item->setText(hashText);
         item->setToolTip(NOT_COMPUTED_YET);
@@ -1224,13 +1248,29 @@ void SimpleHasher::addFilesToTable(const QStringList &files)
 
     for(int column = 1; column <= columnCount; ++column)
     {
-      auto text = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
-      auto item = new HashCellItem{text};
+      auto item = new HashCellItem{""};
       item->setProgress(0);
       item->setData(Qt::UserRole+1, false);
       item->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
       item->setTextAlignment(Qt::AlignCenter);
-      item->setToolTip(m_mode == Mode::GENERATE ? NOT_COMPUTED_TOOLTIP : NOT_FOUND_TOOLTIP);
+
+      QString text,tooltip;
+      if(m_results[file].contains(m_headers.at(column-1)))
+      {
+        auto hash = m_results[file][m_headers.at(column-1)];
+        text = hash->value();
+
+        if(m_oneline)   text = text.replace('\n', ' ');
+        if(!m_spaces)   text = text.remove(' ');
+        if(m_uppercase) text = text.toUpper();
+      }
+      else
+      {
+        text = tooltip = (m_mode == Mode::GENERATE) ? NOT_COMPUTED : NOT_FOUND;
+      }     
+
+      item->setText(text); 
+      item->setToolTip(tooltip);
 
       m_hashTable->setItem(row, column, item);
     }
@@ -1255,6 +1295,9 @@ void SimpleHasher::setMode(const Mode mode)
   if(m_mode == mode) return;
   m_mode = mode;
 
+  m_results.clear();
+  m_hashTable->setRowCount(0);
+
   const auto isGenerate = (m_mode == Mode::GENERATE);
   m_addFile->setVisible(isGenerate);
   m_removeFile->setVisible(isGenerate);
@@ -1262,6 +1305,8 @@ void SimpleHasher::setMode(const Mode mode)
   m_save->setVisible(isGenerate);
   m_hashGroup->setVisible(isGenerate);
   m_options->setVisible(isGenerate);
+
+  if(isGenerate) m_files.clear();
 
   if(m_mode == Mode::CHECK)
     loadInformation();
@@ -1326,6 +1371,7 @@ void HashCellDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
   {
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setRenderHint(QPainter::TextAntialiasing, true);
 
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
@@ -1333,42 +1379,26 @@ void HashCellDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
     const auto cellText = index.data(Qt::DisplayRole).toString();
 
     QBrush brush;
+    painter->setFont(opt.font);
+
     if(progressValue == 0 || progressValue >= 100)
     {
       brush = opt.backgroundBrush;
       painter->fillRect(option.rect, brush);
-      painter->setFont(opt.font);
       painter->drawText(option.rect, Qt::AlignCenter, cellText);
     }
     else
     {
-      const auto drawRect = option.rect;
-      const auto point = std::nearbyint(option.rect.width() * static_cast<float>(progressValue)/100);
-      painter->setFont(opt.font);
+      QStyleOptionProgressBar progressBarOption;
+      progressBarOption.rect = option.rect;
 
-      QRect rightRect = drawRect;
-      rightRect.setWidth(point);
-      brush = opt.palette.highlight();
-      painter->fillRect(rightRect, brush);
-
-      QRect leftRect = drawRect;
-      leftRect.setLeft(drawRect.left() + point);
-      leftRect.setWidth(option.rect.width()-point);
-      brush = opt.backgroundBrush;
-      painter->fillRect(leftRect, brush);
-
-      QRegion region = drawRect;
-      region = region.subtracted(leftRect);
-      painter->setClipRegion(region);
-      painter->setPen(Qt::white);
-      painter->drawText(drawRect, cellText, QTextOption(Qt::AlignAbsolute|Qt::AlignHCenter|Qt::AlignVCenter));
-
-      if (!leftRect.isNull())
-      {
-        painter->setPen(Qt::black);
-        painter->setClipRect(leftRect);
-        painter->drawText(drawRect, cellText, QTextOption(Qt::AlignAbsolute|Qt::AlignHCenter|Qt::AlignVCenter));
-      }
+      progressBarOption.minimum = 0;
+      progressBarOption.maximum = 100;
+      progressBarOption.textAlignment = Qt::AlignCenter;
+      progressBarOption.progress = std::min(100, std::max(0, progressValue));
+      progressBarOption.text = cellText;
+      progressBarOption.textVisible = true;
+      QStyleFactory::create("windowsvista")->drawControl(QStyle::CE_ProgressBar, &progressBarOption, painter);
     }
 
     painter->restore();

@@ -168,6 +168,12 @@ class ComputerThread
     bool isAborted() const
     { return m_abort; }
 
+    /** \brief Returns the errors computing hashes, or empty if none.
+     *
+     */
+    QString getErrors() const
+    { return m_fileErrors; }
+
   signals:
     void progress(int value);
     void hashComputed(const QString &filename, const Hash *hash);
@@ -204,6 +210,7 @@ class ComputerThread
     int                     m_maxThreads;    /** max number of threads in the system.                           */
     std::atomic<int>        m_threadsNum;    /** number of threads currently running.                           */
     QMap<QString, HashList> m_results;       /** computed hashes.                                               */
+    QString                 m_fileErrors;    /** hash errors or empty if none.        */
 
     QList<std::shared_ptr<HashChecker>> m_threads; /** list of running threads. */
 };

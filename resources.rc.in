@@ -14,7 +14,7 @@ BEGIN
     VALUE "FileDescription", "SimpleHasher"
       VALUE "FileVersion", "@SIMPLE_HASHER_VERSION_MAJOR@.@SIMPLE_HASHER_VERSION_MINOR@.@SIMPLE_HASHER_VERSION_PATCH@"
       VALUE "InternalName", "Simple Hasher"
-      VALUE "LegalCopyright", "GNU Public License"
+      VALUE "LegalCopyright", "2015-@CURRENT_YEAR@ Felix de las Pozas Alvarez"
       VALUE "OriginalFilename", "SimpleHasher.exe"
       VALUE "ProductName", "SimpleHasher"
       VALUE "ProductVersion", "@SIMPLE_HASHER_VERSION_MAJOR@.@SIMPLE_HASHER_VERSION_MINOR@.@SIMPLE_HASHER_VERSION_PATCH@"

@@ -18,6 +18,8 @@ The application can be used to check the SUM files that some websites provide to
 
 You can also drag files from the explorer and drop in the main dialog. If the file is a SUMS file (that contains hashes for some files) the application will automatically change to "check mode" and check them. Otherwise the files are added to the list of files to compute hashes.
 
+The hash computations are done using multiple cores, either specified by the user or all available in the system.
+
 ## Options
 From the configuration dialog several options can be modified:
 * Hash representations (uppercase or lowercase, break with spaces or compact, in a single or several lines).
@@ -35,23 +37,25 @@ The following libraries are required:
 
 # Install
 
-Simple Hasher is available for Windows 7 onwards. You can download the latest installer from the [releases page](https://github.com/FelixdelasPozas/SimpleHasher/releases). Neither the application or the installer are digitally signed so the system will ask for approval before running it the first time.
+Simple Hasher is available for Windows 10 onwards. You can download the latest installer from the [releases page](https://github.com/FelixdelasPozas/SimpleHasher/releases). Neither the application or the installer are digitally signed so the system will ask for approval before running it the first time.
+
+The last version compatible with Windows 7 & 8 is version 1.2.0 that can be downloaded [here](https://github.com/FelixdelasPozas/SimpleHasher/releases/tag/1.2.0).
 
 # Screenshots
 Simple main dialog, showing the progress while computing the hashes of some files.
 
-![maindialog](https://user-images.githubusercontent.com/12167134/56167612-ecaf5900-5fd8-11e9-9a3f-f90cf26c8b86.jpg)
+![maindialog](https://github.com/user-attachments/assets/f7e927e2-7da4-4aaf-bccc-3768c5684481)
 
 When checking hash files passed as a parameter (or dropped from the explorer) the green means success (hashes match), red indicates errors (hashes don't match) and yellow indicates that the files were not found (so hashes can't be checked).
 
-![hashcheck](https://cloud.githubusercontent.com/assets/12167134/15993541/772701cc-30e9-11e6-9dee-b5a288412e1b.jpg)
+![hashcheck](https://github.com/user-attachments/assets/197d2465-ed37-40b0-8133-c5561e8dcddc)
 
 Configuration dialog
 
-![configuration](https://cloud.githubusercontent.com/assets/12167134/15993540/76f68e16-30e9-11e6-852f-328f1455117a.jpg)
+![configuration](https://github.com/user-attachments/assets/fe4dd902-8e5a-4ab5-bb4b-fc1448c80788)
 
 # Repository information
-**Version**: 1.4.0
+**Version**: 1.5.0
 
 **Status**: finished
 
@@ -61,7 +65,7 @@ Configuration dialog
 
 | Language                     |files          |blank        |comment           |code    |
 |:-----------------------------|--------------:|------------:|-----------------:|-------:|
-| C++                          |   15          |  541        |    437           |  2425  |
-| C/C++ Header                 |   14          |  247        |    594           |   537  |
-| CMake                        |    1          |   15        |      8           |    64  |
-| **Total**                    |   **30**      |  **803**    |   **1039**       |**3026**|
+| C++                          |   15          |  546        |    437           |  2436  |
+| C/C++ Header                 |   14          |  248        |    597           |   540  |
+| CMake                        |    1          |   16        |      8           |    66  |
+| **Total**                    |   **30**      |  **810**    |   **1042**       |**3042**|
